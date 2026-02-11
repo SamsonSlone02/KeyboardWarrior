@@ -1,0 +1,5 @@
+-camera
+-skybox
+-movement system
+-maze solver output
+-dynamically generated objects
