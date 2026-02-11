@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <math.h>
 #include <time.h>
+#include <fstream>
+#include <iostream>
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <GL/gl.h>
@@ -1045,8 +1047,43 @@ void DrawGLSkybox()
 }
 void DrawGLScene3()
 {
+    static int wordNum = (rand() % 45333) - 1; 
+    string wordArr[45333];
+    string rWord; 
+
+
+
+
+    static int first = 0;
+
+    if(!first)
+    {
+        static const char filename[] = "dictionary.txt";
+        FILE *file = fopen(filename,"r");
+        char line[256];
+        for(int i = 0; i < 45333;i++)
+        {
+            fgets(line,sizeof line, file);
+            wordArr[i] = line; 
+        }
+
+        for(int i = 0; i < 45333;i++)
+        {
+            //chud printf wont work
+            // printf("%s",wordArr[i]); 
+
+            //print out the first time to ensure dictionary loads
+            cout << wordArr[i];
+        }
+    }
+
+    rWord = wordArr[wordNum];
+    first = 1;
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
+
+
     glTranslatef(-1.5f,0.0f,-6.0f);
     glBegin(GL_TRIANGLES);
     glColor3f(1.0f,0.0f,0.0f);
@@ -1056,6 +1093,8 @@ void DrawGLScene3()
     glColor3f(0.0f,0.0f,1.0f);
     glVertex3f(-1.0f,-1.0f, 0.0f);
     glEnd();
+
+
     glTranslatef(3.0f,0.0f,0.0f);
     glColor3f(0.5f,0.5f,1.0f);
     glBegin(GL_QUADS);
@@ -1064,6 +1103,21 @@ void DrawGLScene3()
     glVertex3f( 1.0f,-1.0f, 0.0f);
     glVertex3f(-1.0f,-1.0f, 0.0f);
     glEnd();
+
+
+    Rect r;
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0, g.xres, 0, g.yres, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glDisable(GL_LIGHTING);
+    r.bot = g.yres - 100;
+    r.left = 10;
+    r.center = 0;
+    ggprint8b(&r, 16, 0x00990000, "This is a test");
+
+
 }
 
 void DrawGLScene4()
@@ -1216,7 +1270,7 @@ void DrawGLScene6()
 
     glBindTexture(GL_TEXTURE_2D, 0);
     g.rtri  += 4.0f;
-    
+
     checkCameraTurn();
     if(!g.cameraBusy)
     {
@@ -1236,7 +1290,7 @@ void DrawGLScene6()
         }
         fflush(stdout);
     }
-    
+
 }
 
 
