@@ -2,4 +2,5 @@
 -skybox
 -movement system
 -maze solver output
--dynamically generated objects
+-
+dynamically generated objects
