@@ -31,16 +31,6 @@ void vecMake(Flt a, Flt b, Flt c, Vec v);
 #define rnd() (Flt)rand() / (Flt)RAND_MAX
 #define PI 3.14159265358979323846264338327950
 
-class PlayerData
-{
-    
-};
-
-class Stack
-{
-
-};
-
 class Image {
 public:
 	int width, height;
@@ -498,8 +488,7 @@ int check_keys(XEvent *e)
     int key = XLookupKeysym(&e->xkey, 0);
     switch(key) {
         case XK_1:
-            //g.targetCameraYaw = 'n';
-            g.lesson_num = 1;
+            g.targetCameraYaw = 'n';
             break;
         case XK_2:
             g.targetCameraYaw = 's';
@@ -1056,77 +1045,6 @@ void DrawGLSkybox()
 
 
 }
-void DrawGLScene1()
-{
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
- 
-    DrawGLSkybox();
-    //reset the camera for this scene.
-    glLoadIdentity();
-    glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
-    glTranslatef(0.0f,0.0f,-7.0f);
-    glRotatef(g.cubeAng[0],1.0f,0.0f,0.0f);
-    glRotatef(g.cubeAng[1],0.0f,1.0f,0.0f);
-    glRotatef(g.cubeAng[2],0.0f,0.0f,1.0f);
-
-    glColor3f(1.0f,1.0f,0.0f);
-    glBegin(GL_QUADS);
-    //top
-    //notice the normal being set
-    glNormal3f( 0.0f, 1.0f, 0.0f);
-    glVertex3f( 1.0f, 1.0f,-1.0f);
-    glVertex3f(-1.0f, 1.0f,-1.0f);
-    glVertex3f(-1.0f, 1.0f, 1.0f);
-    glVertex3f( 1.0f, 1.0f, 1.0f);
-    // bottom of cube
-    glNormal3f( 0.0f,-1.0f, 0.0f);
-    glVertex3f( 1.0f,-1.0f, 1.0f);
-    glVertex3f(-1.0f,-1.0f, 1.0f);
-    glVertex3f(-1.0f,-1.0f,-1.0f);
-    glVertex3f( 1.0f,-1.0f,-1.0f);
-    // front of cube
-    glNormal3f( 0.0f, 0.0f, 1.0f);
-    glVertex3f( 1.0f, 1.0f, 1.0f);
-    glVertex3f(-1.0f, 1.0f, 1.0f);
-    glVertex3f(-1.0f,-1.0f, 1.0f);
-    glVertex3f( 1.0f,-1.0f, 1.0f);
-    // back of cube.
-    glNormal3f( 0.0f, 0.0f,-1.0f);
-    glVertex3f( 1.0f,-1.0f,-1.0f);
-    glVertex3f(-1.0f,-1.0f,-1.0f);
-    glVertex3f(-1.0f, 1.0f,-1.0f);
-    glVertex3f( 1.0f, 1.0f,-1.0f);
-    // left of cube
-    glNormal3f(-1.0f, 0.0f, 0.0f);
-    glVertex3f(-1.0f, 1.0f, 1.0f);
-    glVertex3f(-1.0f, 1.0f,-1.0f);
-    glVertex3f(-1.0f,-1.0f,-1.0f);
-    glVertex3f(-1.0f,-1.0f, 1.0f);
-    // Right of cube
-    glNormal3f( 1.0f, 0.0f, 0.0f);
-    glVertex3f( 1.0f, 1.0f,-1.0f);
-    glVertex3f( 1.0f, 1.0f, 1.0f);
-    glVertex3f( 1.0f,-1.0f, 1.0f);
-    glVertex3f( 1.0f,-1.0f,-1.0f);
-    glEnd();
-    g.rquad -= 2.0f;
-    int i;
-
-    if (rnd() < 0.01) {
-        for (i=0; i<3; i++) {
-            g.cubeRot[i] = rnd() * 4.0 - 2.0;
-        }
-    }
-
-    //g.cubeRot[0] = 1.0;
-    //g.cubeRot[1] = 1.0;
-    //g.cubeRot[2] = 1.0;
-
-    for (i=0; i<3; i++) {
-        g.cubeAng[i] += g.cubeRot[i];
-    }
-
-}
 void DrawGLScene3()
 {
     static int wordNum = (rand() % 45333) - 1; 
@@ -1149,6 +1067,7 @@ void DrawGLScene3()
         {
             //chud printf wont work
             // printf("%s",wordArr[i]); 
+
             //print out the first time to ensure dictionary loads
             cout << wordArr[i];
         }
@@ -1189,10 +1108,10 @@ void DrawGLScene3()
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glDisable(GL_LIGHTING);
-    r.bot = g.yres/2;
+    r.bot = g.yres - 100;
     r.left = 10;
     r.center = 0;
-    ggprint8b(&r, 16, 0x00990000, "This is a test This is a test TTTTTTThis is a test This is a test his is a test This is a test his is a test This is a test his is a test This is a test his is a test This is a test his is a test This is a test his is a test This is a test ");
+    ggprint8b(&r, 16, 0x00990000, "This is a test");
 
 
 }
@@ -1464,8 +1383,7 @@ void render(void)
     glEnable(GL_LIGHTING);
     //
     switch (g.lesson_num) {
-        case 0:break;
-        case 1: DrawGLScene1(); break;
+        case 0:
         case 3: DrawGLScene3(); break;
         case 4: DrawGLScene4(); break;
         case 5: DrawGLScene5(); break;
