@@ -22,6 +22,9 @@
 #include <GL/glu.h>
 #include "fonts.h"
 
+
+
+#include "dictionary.h"
 using namespace std;
 
 typedef float Flt;
@@ -123,6 +126,8 @@ public:
     int currentStep;
     char steps[500] = {};
     float moveSpeed = 0.2f;
+
+    Dictionary myDictionary;
 
     Global() {
         currentStep = 0;
@@ -820,6 +825,8 @@ void createTile(int x, int y, int z, bool n, bool e, bool s, bool w)
 
 void TypeDebug()
 {
+
+   /*
     static int wordNum = (rand() % 45333) - 1; 
     string wordArr[45333];
     static string rWord; 
@@ -838,8 +845,10 @@ void TypeDebug()
     }
 
     first = 0;
+*/
+    static string rWord = g.myDictionary.getRandomWord();
+    rWord = g.myDictionary.getRandomWord();
 
-    
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
 
