@@ -14,6 +14,7 @@
 #include <time.h>
 #include <fstream>
 #include <iostream>
+#include <string>
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <GL/gl.h>
@@ -21,6 +22,7 @@
 #include <GL/glu.h>
 #include "fonts.h"
 
+using namespace std;
 
 #include "maze.h"
 #include "mazeSolver.h"
@@ -366,12 +368,12 @@ void init_maze()
     int h = myMaze.adj_gridh;
     int nSteps = 0;
     mazeSolver(myMaze.mazeOutput,h,w,g.steps,nSteps);
-    printf("%d",nSteps);
+    //printf("%d",nSteps);
 
     //lists the steps that will be taken from the predertmined maze solver(random in this case).
     for(int i = 0; i < nSteps;i++)
     {
-    printf("step %c\n", g.steps[i]);
+    //printf("step %c\n", g.steps[i]);
     }
     fflush(stdout);
 }
@@ -591,6 +593,9 @@ int check_keys(XEvent *e)
     }
     return 0;
 }
+
+
+
 
 void checkCameraTurn()
 {   
@@ -1131,30 +1136,32 @@ void DrawGLScene3()
 {
     static int wordNum = (rand() % 45333) - 1; 
     string wordArr[45333];
-    string rWord; 
-    static int first = 0;
+    static string rWord; 
+    static int first = 1;
 
     if(first)
     {
-        static const char filename[] = "dictionary.txt";
-        FILE *file = fopen(filename,"r");
-        char line[256];
+        //static const char filename[] = "dictionary.txt";
+        //FILE *file = fopen(filename,"r");
+        ifstream file("dictionary.txt");
+        string line;
         for(int i = 0; i < 45333;i++)
         {
-            fgets(line,sizeof line, file);
+        //   fgets(line,sizeof line, file);
+            getline(file,line);
             wordArr[i] = line; 
         }
 
         for(int i = 0; i < 45333;i++)
         {
-            //chud printf wont work
             // printf("%s",wordArr[i]); 
             //print out the first time to ensure dictionary loads
             cout << wordArr[i];
         }
+        rWord = wordArr[wordNum];
+        //cout << rWord <<"-------------------------"  << endl;
     }
 
-    rWord = wordArr[wordNum];
     first = 0;
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1183,6 +1190,7 @@ void DrawGLScene3()
 
 
     Rect r;
+    glEnable(GL_TEXTURE_2D);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glOrtho(0, g.xres, 0, g.yres, -1, 1);
@@ -1192,7 +1200,9 @@ void DrawGLScene3()
     r.bot = g.yres/2;
     r.left = 10;
     r.center = 0;
-    ggprint8b(&r, 16, 0x00990000, "This is a test This is a test TTTTTTThis is a test This is a test his is a test This is a test his is a test This is a test his is a test This is a test his is a test This is a test his is a test This is a test his is a test This is a test ");
+    //cout << rWord;
+    //ggprint8b(&rThis is a test String of text"),
+    ggprint8b(&r, 16, 0x00990000, "%s",rWord.c_str());
 
 
 }
