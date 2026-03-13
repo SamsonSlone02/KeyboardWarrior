@@ -24,9 +24,6 @@
 
 using namespace std;
 
-#include "maze.h"
-#include "mazeSolver.h"
-
 typedef float Flt;
 typedef Flt Vec[3];
 void vecMake(Flt a, Flt b, Flt c, Vec v);
@@ -93,7 +90,6 @@ public:
 	float yc[2];
 };
 
-Maze myMaze;
 
 class Global {
 public:
@@ -151,7 +147,7 @@ public:
         memcpy(lightDiffuse, ld, sizeof(GLfloat)*4);
         memcpy(lightSpecular, ls, sizeof(GLfloat)*4);
         memcpy(lightPosition, lp, sizeof(GLfloat)*4);
-        lesson_num=3;
+        lesson_num=1;
         rtri = 0.0f;
         rquad = 0.0f;
         Flt gcubeRot[3]={2.0,0.0,0.0};
@@ -247,7 +243,7 @@ class X11_wrapper {
 } x11;
 
 void init_opengl(void);
-void init_maze();
+void DrawGLSkybox();
 void init_textures(void);
 void check_mouse(XEvent *e);
 int check_keys(XEvent *e);
@@ -258,11 +254,11 @@ int main(void)
 {
     init_opengl();
 
-    init_maze();
+   // init_maze();
     g.targetCameraYaw = g.steps[0];
     g.currentStep++;
     printf("turning %c",g.targetCameraYaw);
-    //g.cameraBusy = true;
+    
     //Do this to allow fonts
     glEnable(GL_TEXTURE_2D);
     initialize_fonts();
@@ -359,25 +355,6 @@ void vecAdd(Vec v0, Vec v1, Vec dest)
 }
 
 
-
-void init_maze()
-{
-    myMaze.createMaze();
-
-    int w = myMaze.adj_gridw;
-    int h = myMaze.adj_gridh;
-    int nSteps = 0;
-    mazeSolver(myMaze.mazeOutput,h,w,g.steps,nSteps);
-    //printf("%d",nSteps);
-
-    //lists the steps that will be taken from the predertmined maze solver(random in this case).
-    for(int i = 0; i < nSteps;i++)
-    {
-    //printf("step %c\n", g.steps[i]);
-    }
-    fflush(stdout);
-}
-
 void init_opengl(void)
 {
     //OpenGL initialization
@@ -401,10 +378,6 @@ void init_opengl(void)
     glLightfv(GL_LIGHT0, GL_SPECULAR, g.lightSpecular);
     glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
     glEnable(GL_LIGHT0);
-
-
-
-
 
     g.tex.backImage = &img[0];
     //create opengl texture elements
@@ -500,11 +473,12 @@ int check_keys(XEvent *e)
     int key = XLookupKeysym(&e->xkey, 0);
     switch(key) {
         case XK_1:
-            //g.targetCameraYaw = 'n';
             g.lesson_num = 1;
+            init_opengl();
             break;
         case XK_2:
-            g.targetCameraYaw = 's';
+            g.lesson_num = 2;
+            init_opengl();
             break;
         case XK_z:
             g.targetCameraYaw = 'e';
@@ -513,12 +487,10 @@ int check_keys(XEvent *e)
             g.targetCameraYaw = 'w';
             break;
         case XK_3:
-            g.lesson_num = 3;
-            init_opengl();
+            g.targetCameraYaw = 'n';
             break;
         case XK_4:
-            g.lesson_num = 4;
-            init_opengl();
+            g.targetCameraYaw = 's';
             break;
         case XK_5:
             g.lesson_num = 5;
@@ -846,6 +818,99 @@ void createTile(int x, int y, int z, bool n, bool e, bool s, bool w)
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+void TypeDebug()
+{
+    static int wordNum = (rand() % 45333) - 1; 
+    string wordArr[45333];
+    static string rWord; 
+    static int first = 1;
+
+    if(first)
+    {
+        ifstream file("dictionary.txt");
+        string line;
+        for(int i = 0; i < 45333;i++)
+        {
+            getline(file,line);
+            wordArr[i] = line; 
+        }
+        rWord = wordArr[wordNum];
+    }
+
+    first = 0;
+
+    
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glLoadIdentity();
+
+    Rect r;
+    glEnable(GL_TEXTURE_2D);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0, g.xres, 0, g.yres, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glDisable(GL_LIGHTING);
+    r.bot = g.yres/2;
+    r.left = g.xres/2;
+    r.center = 0;
+    //cout << rWord;
+    //ggprint8b(&rThis is a test String of text"),
+    ggprint8b(&r, 16, 0x00990000, "%s",rWord.c_str());
+
+
+}
+
+void DrawGame()
+{
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    DrawGLSkybox();
+    //glLoadIdentity();
+    glPushMatrix();
+    glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
+    glTranslatef(-1.5f,-0.0f,-6.0f);
+    glRotatef(50,0.0f,1.0f,0.0f);
+    glColor3f(0.6f,0.7f,0.8f);
+    glBegin(GL_TRIANGLES);
+    glNormal3f( 0.0f, 0.0f, -1.0f);
+    glVertex3f( 0.0f, 1.0f, 0.0f);
+    glVertex3f( 1.0f,-1.0f, 0.0f);
+    glVertex3f(-1.0f,-1.0f, 0.0f);
+    //back side
+    glNormal3f( 0.0f, 0.0f, 1.0f);
+    glVertex3f( 0.0f, 1.0f, 0.01f);
+    glVertex3f( 1.0f,-1.0f, 0.01f);
+    glVertex3f(-1.0f,-1.0f, 0.01f);
+    glEnd();
+    glPopMatrix();
+
+    
+    glBindTexture(GL_TEXTURE_2D, 0);
+    g.rtri  += 4.0f;
+
+    checkCameraTurn();
+    if(!g.cameraBusy)
+    {
+        static float distance = 0;
+        const float err =0.1f;
+        Vec cfuTemp; //camera front updated temp
+        vecScale(g.cameraFront,g.moveSpeed,cfuTemp);
+        vecAdd(g.cameraPos,cfuTemp,g.cameraPos);
+        char cur = g.steps[g.currentStep];
+        distance+=g.moveSpeed;
+        if(distance <= 2.0f+err && distance >=2.0f-err)
+        {
+            g.targetCameraYaw = cur;
+            printf("turning %c",g.targetCameraYaw);
+            g.currentStep++;
+            distance=0;
+        }
+        fflush(stdout);
+    }
+
+}
+
+
 void DrawGLSkybox()
 {
 
@@ -1061,388 +1126,7 @@ void DrawGLSkybox()
 
 
 }
-void DrawGLScene1()
-{
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
- 
-    DrawGLSkybox();
-    //reset the camera for this scene.
-    glLoadIdentity();
-    glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
-    glTranslatef(0.0f,0.0f,-7.0f);
-    glRotatef(g.cubeAng[0],1.0f,0.0f,0.0f);
-    glRotatef(g.cubeAng[1],0.0f,1.0f,0.0f);
-    glRotatef(g.cubeAng[2],0.0f,0.0f,1.0f);
 
-    glColor3f(1.0f,1.0f,0.0f);
-    glBegin(GL_QUADS);
-    //top
-    //notice the normal being set
-    glNormal3f( 0.0f, 1.0f, 0.0f);
-    glVertex3f( 1.0f, 1.0f,-1.0f);
-    glVertex3f(-1.0f, 1.0f,-1.0f);
-    glVertex3f(-1.0f, 1.0f, 1.0f);
-    glVertex3f( 1.0f, 1.0f, 1.0f);
-    // bottom of cube
-    glNormal3f( 0.0f,-1.0f, 0.0f);
-    glVertex3f( 1.0f,-1.0f, 1.0f);
-    glVertex3f(-1.0f,-1.0f, 1.0f);
-    glVertex3f(-1.0f,-1.0f,-1.0f);
-    glVertex3f( 1.0f,-1.0f,-1.0f);
-    // front of cube
-    glNormal3f( 0.0f, 0.0f, 1.0f);
-    glVertex3f( 1.0f, 1.0f, 1.0f);
-    glVertex3f(-1.0f, 1.0f, 1.0f);
-    glVertex3f(-1.0f,-1.0f, 1.0f);
-    glVertex3f( 1.0f,-1.0f, 1.0f);
-    // back of cube.
-    glNormal3f( 0.0f, 0.0f,-1.0f);
-    glVertex3f( 1.0f,-1.0f,-1.0f);
-    glVertex3f(-1.0f,-1.0f,-1.0f);
-    glVertex3f(-1.0f, 1.0f,-1.0f);
-    glVertex3f( 1.0f, 1.0f,-1.0f);
-    // left of cube
-    glNormal3f(-1.0f, 0.0f, 0.0f);
-    glVertex3f(-1.0f, 1.0f, 1.0f);
-    glVertex3f(-1.0f, 1.0f,-1.0f);
-    glVertex3f(-1.0f,-1.0f,-1.0f);
-    glVertex3f(-1.0f,-1.0f, 1.0f);
-    // Right of cube
-    glNormal3f( 1.0f, 0.0f, 0.0f);
-    glVertex3f( 1.0f, 1.0f,-1.0f);
-    glVertex3f( 1.0f, 1.0f, 1.0f);
-    glVertex3f( 1.0f,-1.0f, 1.0f);
-    glVertex3f( 1.0f,-1.0f,-1.0f);
-    glEnd();
-    g.rquad -= 2.0f;
-    int i;
-
-    if (rnd() < 0.01) {
-        for (i=0; i<3; i++) {
-            g.cubeRot[i] = rnd() * 4.0 - 2.0;
-        }
-    }
-
-    //g.cubeRot[0] = 1.0;
-    //g.cubeRot[1] = 1.0;
-    //g.cubeRot[2] = 1.0;
-
-    for (i=0; i<3; i++) {
-        g.cubeAng[i] += g.cubeRot[i];
-    }
-
-}
-void DrawGLScene3()
-{
-    static int wordNum = (rand() % 45333) - 1; 
-    string wordArr[45333];
-    static string rWord; 
-    static int first = 1;
-
-    if(first)
-    {
-        //static const char filename[] = "dictionary.txt";
-        //FILE *file = fopen(filename,"r");
-        ifstream file("dictionary.txt");
-        string line;
-        for(int i = 0; i < 45333;i++)
-        {
-        //   fgets(line,sizeof line, file);
-            getline(file,line);
-            wordArr[i] = line; 
-        }
-
-        for(int i = 0; i < 45333;i++)
-        {
-            // printf("%s",wordArr[i]); 
-            //print out the first time to ensure dictionary loads
-            cout << wordArr[i];
-        }
-        rWord = wordArr[wordNum];
-        //cout << rWord <<"-------------------------"  << endl;
-    }
-
-    first = 0;
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glLoadIdentity();
-
-
-    glTranslatef(-1.5f,0.0f,-6.0f);
-    glBegin(GL_TRIANGLES);
-    glColor3f(1.0f,0.0f,0.0f);
-    glVertex3f( 0.0f, 1.0f, 0.0f);
-    glColor3f(0.0f,1.0f,0.0f);
-    glVertex3f( 1.0f,-1.0f, 0.0f);
-    glColor3f(0.0f,0.0f,1.0f);
-    glVertex3f(-1.0f,-1.0f, 0.0f);
-    glEnd();
-
-
-    glTranslatef(3.0f,0.0f,0.0f);
-    glColor3f(0.5f,0.5f,1.0f);
-    glBegin(GL_QUADS);
-    glVertex3f(-1.0f, 1.0f, 0.0f);
-    glVertex3f( 1.0f, 1.0f, 0.0f);
-    glVertex3f( 1.0f,-1.0f, 0.0f);
-    glVertex3f(-1.0f,-1.0f, 0.0f);
-    glEnd();
-
-
-    Rect r;
-    glEnable(GL_TEXTURE_2D);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho(0, g.xres, 0, g.yres, -1, 1);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glDisable(GL_LIGHTING);
-    r.bot = g.yres/2;
-    r.left = 10;
-    r.center = 0;
-    //cout << rWord;
-    //ggprint8b(&rThis is a test String of text"),
-    ggprint8b(&r, 16, 0x00990000, "%s",rWord.c_str());
-
-
-}
-
-void DrawGLScene4()
-{
-
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    DrawGLSkybox();
-
-    glLoadIdentity();
-    glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
-    glTranslatef(1.5f,0.0f,-6.0f);
-    glRotatef(g.rtri,0.0f,1.0f,0.0f);
-    glColor3f(0.6f,0.7f,0.8f);
-    glBegin(GL_TRIANGLES);
-    glNormal3f( 0.0f, 0.0f, -1.0f);
-    glVertex3f( 0.0f, 1.0f, 0.0f);
-    glVertex3f( 1.0f,-1.0f, 0.0f);
-    glVertex3f(-1.0f,-1.0f, 0.0f);
-    //back side
-    glNormal3f( 0.0f, 0.0f, 1.0f);
-    glVertex3f( 0.0f, 1.0f, 0.01f);
-    glVertex3f( 1.0f,-1.0f, 0.01f);
-    glVertex3f(-1.0f,-1.0f, 0.01f);
-    glEnd();
-    glLoadIdentity();
-    glTranslatef(1.5f,0.0f,-6.0f);
-    glRotatef(g.rquad,1.0f,0.0f,0.0f);
-    glColor3f(1.0f,0.5f,0.5f);
-    glBindTexture(GL_TEXTURE_2D, g.tex.backTexture);
-    glBegin(GL_QUADS);
-    //back side
-    glNormal3f( 0.0f, 0.0f, -1.0f);
-    glVertex3f(-1.0f, 1.0f, 0.0f);
-    glVertex3f( 1.0f, 1.0f, 0.0f);
-    glVertex3f( 1.0f,-1.0f, 0.0f);
-    glVertex3f(-1.0f,-1.0f, 0.0f);
-
-    //front
-    ////bind()
-    glNormal3f( 0.0f, 0.0f, 1.0f);
-
-
-    glColor3f(1.0f,1.0f,1.0f);
-
-    glTexCoord2f(0.0f, 0.0f);
-    glVertex3f(-1.0f, 1.0f, 0.01f);
-
-    glTexCoord2f(1.0f, 0.0f);
-    glVertex3f( 1.0f, 1.0f, 0.01f);
-
-    glTexCoord2f(1.0f, 1.0f);
-    glVertex3f( 1.0f,-1.0f, 0.01f);
-
-    glTexCoord2f(0.0f, 1.0f);
-    glVertex3f(-1.0f,-1.0f, 0.01f);
-
-    //bind(0)    
-    glEnd();
-    glBindTexture(GL_TEXTURE_2D, 0);
-    g.rtri  += 4.0f;
-    g.rquad -= 1.0f;
-}
-
-void DrawGLScene5()
-{
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    //glLoadIdentity();
-    glPushMatrix();
-    glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
-    glTranslatef(-1.5f,-0.0f,-6.0f);
-    glRotatef(50,0.0f,1.0f,0.0f);
-    glColor3f(0.6f,0.7f,0.8f);
-    glBegin(GL_TRIANGLES);
-    glNormal3f( 0.0f, 0.0f, -1.0f);
-    glVertex3f( 0.0f, 1.0f, 0.0f);
-    glVertex3f( 1.0f,-1.0f, 0.0f);
-    glVertex3f(-1.0f,-1.0f, 0.0f);
-    //back side
-    glNormal3f( 0.0f, 0.0f, 1.0f);
-    glVertex3f( 0.0f, 1.0f, 0.01f);
-    glVertex3f( 1.0f,-1.0f, 0.01f);
-    glVertex3f(-1.0f,-1.0f, 0.01f);
-    glEnd();
-
-    glPopMatrix();
-
-    createTile( 0,0,0,true,false,true,false);
-
-
-}
-
-
-
-void DrawGLScene6()
-{
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    DrawGLSkybox();
-    //glLoadIdentity();
-    glPushMatrix();
-    glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
-    glTranslatef(-1.5f,-0.0f,-6.0f);
-    glRotatef(50,0.0f,1.0f,0.0f);
-    glColor3f(0.6f,0.7f,0.8f);
-    glBegin(GL_TRIANGLES);
-    glNormal3f( 0.0f, 0.0f, -1.0f);
-    glVertex3f( 0.0f, 1.0f, 0.0f);
-    glVertex3f( 1.0f,-1.0f, 0.0f);
-    glVertex3f(-1.0f,-1.0f, 0.0f);
-    //back side
-    glNormal3f( 0.0f, 0.0f, 1.0f);
-    glVertex3f( 0.0f, 1.0f, 0.01f);
-    glVertex3f( 1.0f,-1.0f, 0.01f);
-    glVertex3f(-1.0f,-1.0f, 0.01f);
-    glEnd();
-
-    glPopMatrix();
-
-    int adj_i = 0;
-    int adj_j = 0;
-    for(int i = 1; i < myMaze.adj_gridh;i+=2)
-    {
-
-        for(int j = 1; j < myMaze.adj_gridw;j+=2)
-        {   
-            bool in_n = true;
-            bool in_e = true;
-            bool in_s = true; 
-            bool in_w = true;
-
-            if(myMaze.mazeOutput[i+1][j] == ' ')
-                in_n = false;
-            if(myMaze.mazeOutput[i-1][j] == ' ')
-                in_s = false;
-            if(myMaze.mazeOutput[i][j-1] ==' ')
-                in_w = false;
-            if(myMaze.mazeOutput[i][j+1] == ' ')
-                in_e = false;
-
-            adj_i++;
-            //printf("creating tile at %d,%d", adj_i,adj_j);
-            createTile(adj_i * 2,0, adj_j * 2,in_n,in_e,in_s,in_w);
-
-        }
-        adj_j++;
-        adj_i = 0;
-    }
-
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-    g.rtri  += 4.0f;
-
-    checkCameraTurn();
-    if(!g.cameraBusy)
-    {
-        static float distance = 0;
-        const float err =0.1f;
-        Vec cfuTemp; //camera front updated temp
-        vecScale(g.cameraFront,g.moveSpeed,cfuTemp);
-        vecAdd(g.cameraPos,cfuTemp,g.cameraPos);
-        char cur = g.steps[g.currentStep];
-        distance+=g.moveSpeed;
-        if(distance <= 2.0f+err && distance >=2.0f-err)
-        {
-            g.targetCameraYaw = cur;
-            printf("turning %c",g.targetCameraYaw);
-            g.currentStep++;
-            distance=0;
-        }
-        fflush(stdout);
-    }
-
-}
-
-
-void LightedCube()
-{
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-    //reset the camera for this scene.
-    glLoadIdentity();
-    glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
-    glTranslatef(0.0f,0.0f,-7.0f);
-    glRotatef(g.cubeAng[0],1.0f,0.0f,0.0f);
-    glRotatef(g.cubeAng[1],0.0f,1.0f,0.0f);
-    glRotatef(g.cubeAng[2],0.0f,0.0f,1.0f);
-
-    glColor3f(1.0f,1.0f,0.0f);
-    glBegin(GL_QUADS);
-    //top
-    //notice the normal being set
-    glNormal3f( 0.0f, 1.0f, 0.0f);
-    glVertex3f( 1.0f, 1.0f,-1.0f);
-    glVertex3f(-1.0f, 1.0f,-1.0f);
-    glVertex3f(-1.0f, 1.0f, 1.0f);
-    glVertex3f( 1.0f, 1.0f, 1.0f);
-    // bottom of cube
-    glNormal3f( 0.0f,-1.0f, 0.0f);
-    glVertex3f( 1.0f,-1.0f, 1.0f);
-    glVertex3f(-1.0f,-1.0f, 1.0f);
-    glVertex3f(-1.0f,-1.0f,-1.0f);
-    glVertex3f( 1.0f,-1.0f,-1.0f);
-    // front of cube
-    glNormal3f( 0.0f, 0.0f, 1.0f);
-    glVertex3f( 1.0f, 1.0f, 1.0f);
-    glVertex3f(-1.0f, 1.0f, 1.0f);
-    glVertex3f(-1.0f,-1.0f, 1.0f);
-    glVertex3f( 1.0f,-1.0f, 1.0f);
-    // back of cube.
-    glNormal3f( 0.0f, 0.0f,-1.0f);
-    glVertex3f( 1.0f,-1.0f,-1.0f);
-    glVertex3f(-1.0f,-1.0f,-1.0f);
-    glVertex3f(-1.0f, 1.0f,-1.0f);
-    glVertex3f( 1.0f, 1.0f,-1.0f);
-    // left of cube
-    glNormal3f(-1.0f, 0.0f, 0.0f);
-    glVertex3f(-1.0f, 1.0f, 1.0f);
-    glVertex3f(-1.0f, 1.0f,-1.0f);
-    glVertex3f(-1.0f,-1.0f,-1.0f);
-    glVertex3f(-1.0f,-1.0f, 1.0f);
-    // Right of cube
-    glNormal3f( 1.0f, 0.0f, 0.0f);
-    glVertex3f( 1.0f, 1.0f,-1.0f);
-    glVertex3f( 1.0f, 1.0f, 1.0f);
-    glVertex3f( 1.0f,-1.0f, 1.0f);
-    glVertex3f( 1.0f,-1.0f,-1.0f);
-    glEnd();
-    g.rquad -= 2.0f;
-    int i;
-    if (rnd() < 0.01) {
-        for (i=0; i<3; i++) {
-            g.cubeRot[i] = rnd() * 4.0 - 2.0;
-        }
-    }
-    for (i=0; i<3; i++) {
-        g.cubeAng[i] += g.cubeRot[i];
-    }
-}
 
 void physics(void) { }
 
@@ -1474,13 +1158,10 @@ void render(void)
     glEnable(GL_LIGHTING);
     //
     switch (g.lesson_num) {
-        case 0:break;
-        case 1: DrawGLScene1(); break;
-        case 3: DrawGLScene3(); break;
-        case 4: DrawGLScene4(); break;
-        case 5: DrawGLScene5(); break;
-        case 6: LightedCube(); break;
-        case 'm': DrawGLScene6(); break;
+        case 0:break;              
+        case 1: TypeDebug(); break;
+        case 2: DrawGame(); break;
+  
     }
     //Set 2D mode (no perspective)
     glMatrixMode(GL_PROJECTION);
