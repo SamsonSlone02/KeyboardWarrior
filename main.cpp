@@ -5,7 +5,7 @@
 //author:  Gordon Griesel
 //OpenGL
 //lab-6 starting framework
-//
+#include <cctype>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +14,7 @@
 #include <time.h>
 #include <fstream>
 #include <iostream>
+#include<algorithm>
 #include <string>
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
@@ -21,7 +22,7 @@
 #include <GL/glx.h>
 #include <GL/glu.h>
 #include "fonts.h"
-
+#include <stack>
 
 
 #include "dictionary.h"
@@ -35,135 +36,139 @@ void vecMake(Flt a, Flt b, Flt c, Vec v);
 
 class PlayerData
 {
-    
-};
-
-class Stack
-{
 
 };
+
+
+
+stack<char> currentText;
+
 
 class Image {
-public:
-	int width, height;
-	unsigned char *data;
-	~Image() { delete [] data; }
-	Image(const char *fname) {
-		if (fname[0] == '\0')
-			return;
-		char name[40];
-		strcpy(name, fname);
-		int slen = strlen(name);
-		name[slen-4] = '\0';
-		char ppmname[80];
-		sprintf(ppmname,"%s.ppm", name);
-		char ts[100];
-		sprintf(ts, "convert %s %s", fname, ppmname);
-		system(ts);
-		FILE *fpi = fopen(ppmname, "r");
-		if (fpi) {
-			char line[200];
-			fgets(line, 200, fpi);
-			fgets(line, 200, fpi);
-			//skip comments and blank lines
-			while (line[0] == '#' || strlen(line) < 2)
-				fgets(line, 200, fpi);
-			sscanf(line, "%i %i", &width, &height);
-			fgets(line, 200, fpi);
-			//get pixel data
-			int n = width * height * 3;			
-			data = new unsigned char[n];			
-			for (int i=0; i<n; i++)
-				data[i] = fgetc(fpi);
-			fclose(fpi);
-		} else {
-			printf("ERROR opening image: %s\n", ppmname);
-			exit(0);
-		}
-		unlink(ppmname);
-	}
+    public:
+        int width, height;
+        unsigned char *data;
+        ~Image() { delete [] data; }
+        Image(const char *fname) {
+            if (fname[0] == '\0')
+                return;
+            char name[40];
+            strcpy(name, fname);
+            int slen = strlen(name);
+            name[slen-4] = '\0';
+            char ppmname[80];
+            sprintf(ppmname,"%s.ppm", name);
+            char ts[100];
+            sprintf(ts, "convert %s %s", fname, ppmname);
+            system(ts);
+            FILE *fpi = fopen(ppmname, "r");
+            if (fpi) {
+                char line[200];
+                fgets(line, 200, fpi);
+                fgets(line, 200, fpi);
+                //skip comments and blank lines
+                while (line[0] == '#' || strlen(line) < 2)
+                    fgets(line, 200, fpi);
+                sscanf(line, "%i %i", &width, &height);
+                fgets(line, 200, fpi);
+                //get pixel data
+                int n = width * height * 3;			
+                data = new unsigned char[n];			
+                for (int i=0; i<n; i++)
+                    data[i] = fgetc(fpi);
+                fclose(fpi);
+            } else {
+                printf("ERROR opening image: %s\n", ppmname);
+                exit(0);
+            }
+            unlink(ppmname);
+        }
 };
 Image img[3] = {"wall.png","carpet.png","sky4.jpg"};
 
 class Texture {
-public:
-	Image *backImage;
-	GLuint backTexture;
-	float xc[2];
-	float yc[2];
+    public:
+        Image *backImage;
+        GLuint backTexture;
+        float xc[2];
+        float yc[2];
 };
 
-
 class Global {
-public:
-	int xres, yres;
-	GLfloat lightAmbient[4];
-	GLfloat lightDiffuse[4];
-	GLfloat lightSpecular[4];
-	GLfloat lightPosition[4];
-	int lesson_num;
-	Flt rtri;
-	Flt rquad;
-	Flt cubeRot[3];
-	Flt cubeAng[3];
-	Texture tex;
-	Texture carpetTex;
-	Texture skyTex;
-    int cx;
-    int cy;
-    int cz;
+    public:
+        int xres, yres;
+        GLfloat lightAmbient[4];
+        GLfloat lightDiffuse[4];
+        GLfloat lightSpecular[4];
+        GLfloat lightPosition[4];
+        int lesson_num;
+        Flt rtri;
+        Flt rquad;
+        Flt cubeRot[3];
+        Flt cubeAng[3];
+        Texture tex;
+        Texture carpetTex;
+        Texture skyTex;
+        int cx;
+        int cy;
+        int cz;
 
-    Flt yaw;
-    Flt pitch;
-    Vec cameraUp;
-    Vec cameraPos;
-    Vec cameraFront;
+        Flt yaw;
+        Flt pitch;
+        Vec cameraUp;
+        Vec cameraPos;
+        Vec cameraFront;
 
-    char targetCameraYaw;
-    int cameraTurnSpeed;
-    bool cameraBusy;
 
-    int currentStep;
-    char steps[500] = {};
-    float moveSpeed = 0.2f;
 
-    Dictionary myDictionary;
+        char targetCameraYaw;
+        int cameraTurnSpeed;
+        bool cameraBusy;
 
-    Global() {
-        currentStep = 0;
-        cameraTurnSpeed = 5;
-        targetCameraYaw = ' ';
-        yaw = 0.0f;
-        pitch = 0.0f;
-        vecMake(0.0f,1.0f,0.0f,cameraUp);
-        vecMake(0.0f,0.0f,-6.0f,cameraPos);
-        vecMake(0.0f,0.0f,-1.0f,cameraFront);
-        srand(time(NULL));
-        xres = 640;
-        yres = 480;
-        GLfloat la[]  = {  0.0f, 0.0f, 0.0f, 1.0f };
-        GLfloat ld[]  = {  1.0f, 1.0f, 1.0f, 1.0f };
-        GLfloat ls[] = {  0.5f, 0.5f, 0.5f, 1.0f };
-        GLfloat lp[] = { 100.0f, 60.0f, -140.0f, 1.0f };
-        lp[0] = rnd() * 200.0 - 100.0;
-        lp[1] = rnd() * 100.0 + 20.0;
-        lp[2] = rnd() * 300.0 - 150.0;
-        memcpy(lightAmbient, la, sizeof(GLfloat)*4);
-        memcpy(lightDiffuse, ld, sizeof(GLfloat)*4);
-        memcpy(lightSpecular, ls, sizeof(GLfloat)*4);
-        memcpy(lightPosition, lp, sizeof(GLfloat)*4);
-        lesson_num=1;
-        rtri = 0.0f;
-        rquad = 0.0f;
-        Flt gcubeRot[3]={2.0,0.0,0.0};
-        Flt gcubeAng[3]={0.0,0.0,0.0};
-        memcpy(cubeRot, gcubeRot, sizeof(Flt)*3);
-        memcpy(cubeAng, gcubeAng, sizeof(Flt)*3);
+        int currentStep;
+        char steps[500] = {};
+        float moveSpeed = 0.2f;
 
-        cx = 10;
-        cy = 20;
-        cz = 10;
-    }
+        Dictionary myDictionary;
+
+        int typeMode;
+
+        Global() {
+            currentStep = 0;
+            cameraTurnSpeed = 5;
+            targetCameraYaw = ' ';
+            yaw = 0.0f;
+            pitch = 0.0f;
+            typeMode = 0;
+            vecMake(0.0f,1.0f,0.0f,cameraUp);
+            vecMake(0.0f,0.0f,-6.0f,cameraPos);
+            vecMake(0.0f,0.0f,-1.0f,cameraFront);
+            srand(time(NULL));
+            xres = 640;
+            yres = 480;
+            GLfloat la[]  = {  0.0f, 0.0f, 0.0f, 1.0f };
+            GLfloat ld[]  = {  1.0f, 1.0f, 1.0f, 1.0f };
+            GLfloat ls[] = {  0.5f, 0.5f, 0.5f, 1.0f };
+            GLfloat lp[] = { 100.0f, 60.0f, -140.0f, 1.0f };
+            lp[0] = rnd() * 200.0 - 100.0;
+            lp[1] = rnd() * 100.0 + 20.0;
+            lp[2] = rnd() * 300.0 - 150.0;
+            memcpy(lightAmbient, la, sizeof(GLfloat)*4);
+            memcpy(lightDiffuse, ld, sizeof(GLfloat)*4);
+            memcpy(lightSpecular, ls, sizeof(GLfloat)*4);
+            memcpy(lightPosition, lp, sizeof(GLfloat)*4);
+            lesson_num=1;
+            rtri = 0.0f;
+            rquad = 0.0f;
+            Flt gcubeRot[3]={2.0,0.0,0.0};
+            Flt gcubeAng[3]={0.0,0.0,0.0};
+            memcpy(cubeRot, gcubeRot, sizeof(Flt)*3);
+            memcpy(cubeAng, gcubeAng, sizeof(Flt)*3);
+
+            cx = 10;
+            cy = 20;
+            cz = 10;
+        }
 } g;
 
 //X11 functions
@@ -259,10 +264,10 @@ int main(void)
 {
     init_opengl();
 
-   // init_maze();
+    // init_maze();
     g.targetCameraYaw = g.steps[0];
     g.currentStep++;
-    printf("turning %c",g.targetCameraYaw);
+    //printf("turning %c",g.targetCameraYaw);
     
     //Do this to allow fonts
     glEnable(GL_TEXTURE_2D);
@@ -286,7 +291,7 @@ int main(void)
 
 void vecScale(Vec v0,float s0, Vec dest)
 {
-    
+
     dest[0] = v0[0]*s0;
     dest[1] = v0[1]*s0;
     dest[2] = v0[2]*s0;
@@ -402,7 +407,7 @@ void init_opengl(void)
     g.tex.yc[0] = 0.0;
     g.tex.yc[1] = 1.0;
 
- 
+
     g.carpetTex.backImage = &img[1];
     //create opengl texture elements
     glGenTextures(1, &g.carpetTex.backTexture);
@@ -420,8 +425,8 @@ void init_opengl(void)
     g.carpetTex.xc[1] = 1.0;
     g.carpetTex.yc[0] = 0.0;
     g.carpetTex.yc[1] = 1.0;
-    
-    
+
+
     g.skyTex.backImage = &img[2];
     //create opengl texture elements
 
@@ -441,7 +446,7 @@ void init_opengl(void)
     g.skyTex.xc[1] = 1.0;
     g.skyTex.yc[0] = 0.0;
     g.skyTex.yc[1] = 1.0;
-    
+
 
 }
 
@@ -476,97 +481,119 @@ int check_keys(XEvent *e)
     if (e->type != KeyPress && e->type != KeyPress)
         return 0;
     int key = XLookupKeysym(&e->xkey, 0);
-    switch(key) {
-        case XK_1:
-            g.lesson_num = 1;
-            init_opengl();
-            break;
-        case XK_2:
-            g.lesson_num = 2;
-            init_opengl();
-            break;
-        case XK_z:
-            g.targetCameraYaw = 'e';
-            break;
-        case XK_x:
-            g.targetCameraYaw = 'w';
-            break;
-        case XK_3:
-            g.targetCameraYaw = 'n';
-            break;
-        case XK_4:
-            g.targetCameraYaw = 's';
-            break;
-        case XK_5:
-            g.lesson_num = 5;
-            init_opengl();
-            break;
-        case XK_6:
-            g.lesson_num = 6;
-            init_opengl();
-            break;
-        case XK_l:
-            //set light position
-            g.lightPosition[0] = rnd() * 200.0 - 100.0;
-            g.lightPosition[1] = rnd() * 100.0 + 20.0;
-            g.lightPosition[2] = rnd() * 300.0 - 150.0;
-            glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
-            break;
-        case XK_Escape:
-            return 1;
-        case XK_m:
-            g.lesson_num = 'm';
-            g.cameraPos[0] = 3.5;
-            g.cameraPos[2] = -5;
-            init_opengl();
-            break;
-        case XK_Up:
-            Vec cfuTemp;
-            vecScale(g.cameraFront,g.moveSpeed,cfuTemp);
-            vecAdd(g.cameraPos,cfuTemp,g.cameraPos);
-            break;
-        case XK_Down:
-            Vec cfdTemp;
-            vecScale(g.cameraFront,g.moveSpeed,cfdTemp);
-            vecSub(g.cameraPos,cfdTemp,g.cameraPos);
-            break;
-        case XK_Left:
-            Vec crossTempL;
-            vecCrossProduct(g.cameraFront,g.cameraUp,crossTempL);
-            vecNormalize(crossTempL);
-            vecSub(g.cameraPos,crossTempL,g.cameraPos);
-            break;
-        case XK_Right:
-            Vec crossTempR;
-            vecCrossProduct(g.cameraFront,g.cameraUp,crossTempR);
-            vecNormalize(crossTempR);
-            vecAdd(g.cameraPos,crossTempR,g.cameraPos);
-            break;
-        case XK_o:
-            //g.cy -=1;
-            g.yaw-=1;
-            g.targetCameraYaw = ' ';
-            printf("%f, ",g.cameraFront[0]);
-            printf("%f\n",g.cameraFront[2]);
-            break;
-        case XK_p:
-            g.yaw+=1;
-            g.targetCameraYaw = ' ';
-            printf("%f, ",g.cameraFront[0]);
-            printf("%f\n",g.cameraFront[2]);
-            break;
-        case XK_k:
-            g.pitch +=1;
-            break;
-        case XK_j:
-            g.pitch -=1;
-            break;
-        case XK_u:
-            g.cameraPos[1] +=1;
-            break;
-        case XK_i:
-            g.cameraPos[1] -=1;
-           break;
+    if(!g.typeMode)
+    {
+        switch(key) {
+            case XK_1:
+                g.lesson_num = 1;
+                init_opengl();
+                break;
+            case XK_2:
+                g.lesson_num = 2;
+                init_opengl();
+                break;
+            case XK_z:
+                g.targetCameraYaw = 'e';
+                break;
+            case XK_x:
+                g.targetCameraYaw = 'w';
+                break;
+            case XK_3:
+                g.targetCameraYaw = 'n';
+                break;
+            case XK_4:
+                g.targetCameraYaw = 's';
+                break;
+            case XK_5:
+                g.lesson_num = 5;
+                init_opengl();
+                break;
+            case XK_6:
+                g.lesson_num = 6;
+                init_opengl();
+                break;
+            case XK_l:
+                //set light position
+                g.lightPosition[0] = rnd() * 200.0 - 100.0;
+                g.lightPosition[1] = rnd() * 100.0 + 20.0;
+                g.lightPosition[2] = rnd() * 300.0 - 150.0;
+                glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
+                break;
+            case XK_Escape:
+                return 1;
+            case XK_m:
+                g.lesson_num = 'm';
+                g.cameraPos[0] = 3.5;
+                g.cameraPos[2] = -5;
+                init_opengl();
+                break;
+            case XK_Up:
+                Vec cfuTemp;
+                vecScale(g.cameraFront,g.moveSpeed,cfuTemp);
+                vecAdd(g.cameraPos,cfuTemp,g.cameraPos);
+                break;
+            case XK_Down:
+                Vec cfdTemp;
+                vecScale(g.cameraFront,g.moveSpeed,cfdTemp);
+                vecSub(g.cameraPos,cfdTemp,g.cameraPos);
+                break;
+            case XK_Left:
+                Vec crossTempL;
+                vecCrossProduct(g.cameraFront,g.cameraUp,crossTempL);
+                vecNormalize(crossTempL);
+                vecSub(g.cameraPos,crossTempL,g.cameraPos);
+                break;
+            case XK_Right:
+                Vec crossTempR;
+                vecCrossProduct(g.cameraFront,g.cameraUp,crossTempR);
+                vecNormalize(crossTempR);
+                vecAdd(g.cameraPos,crossTempR,g.cameraPos);
+                break;
+            case XK_o:
+                //g.cy -=1;
+                g.yaw-=1;
+                g.targetCameraYaw = ' ';
+                printf("%f, ",g.cameraFront[0]);
+                printf("%f\n",g.cameraFront[2]);
+                break;
+            case XK_p:
+                g.yaw+=1;
+                g.targetCameraYaw = ' ';
+                printf("%f, ",g.cameraFront[0]);
+                printf("%f\n",g.cameraFront[2]);
+                break;
+            case XK_k:
+                g.pitch +=1;
+                break;
+            case XK_j:
+                g.pitch -=1;
+                break;
+            case XK_u:
+                g.cameraPos[1] +=1;
+                break;
+            case XK_t:
+                cout << "now typing..." << endl;
+                g.typeMode = 1;
+                break;
+            case XK_i:
+                g.cameraPos[1] -=1;
+                break;
+        }
+    }
+    else
+    {
+        if(key >= 97 && key <= 122)
+            currentText.push((char)key);
+        if(key == 32)  //space
+            currentText.push(' ');   
+        if(key == 26)  //escape
+            g.typeMode = 0;
+        if(key == XK_BackSpace)
+            if(!currentText.empty())
+                currentText.pop();
+        if(key == 48)
+            if(!currentText.empty())
+                currentText.pop();
     }
     return 0;
 }
@@ -576,7 +603,7 @@ int check_keys(XEvent *e)
 
 void checkCameraTurn()
 {   
-    
+
 
     int target;
     switch (g.targetCameraYaw)
@@ -619,6 +646,54 @@ void checkCameraTurn()
 
     }
 }
+class Enemy
+{
+    private:
+        string word;
+        Vec pos;
+    public:
+        Enemy()
+        {
+            word = g.myDictionary.getRandomWord();
+            pos[0] = rand() % g.xres;
+            pos[1] = rand() % g.yres;
+        }
+        string getWord()
+        {
+            return word;
+        }
+        float getX()
+        {
+            return pos[0];
+        }
+        float getY()
+        {
+            return pos[1];
+        }
+        void draw()
+        {
+            Rect r;
+            glEnable(GL_TEXTURE_2D);
+            glMatrixMode(GL_PROJECTION);
+            glLoadIdentity();
+            glOrtho(0, g.xres, 0, g.yres, -1, 1);
+            glMatrixMode(GL_MODELVIEW);
+            glLoadIdentity();
+            glDisable(GL_LIGHTING);
+            r.bot = pos[1];
+            r.left = pos[0];
+            r.center = 0;
+            ggprint8b(&r, 16, 0x00990000, "%s",word.c_str());
+        }
+        bool checkMatch(string in_string)
+        {
+            if(in_string == word)
+                return true;
+            else 
+                return false;
+        }
+};
+
 
 
 void createTile(int x, int y, int z, bool n, bool e, bool s, bool w)
@@ -823,29 +898,21 @@ void createTile(int x, int y, int z, bool n, bool e, bool s, bool w)
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+const int nEnemies = 5;
+Enemy * debugEnemy[nEnemies];
+
 void TypeDebug()
 {
 
-   /*
-    static int wordNum = (rand() % 45333) - 1; 
-    string wordArr[45333];
-    static string rWord; 
-    static int first = 1;
-
-    if(first)
+    static int firstRun = 1;
+    if(firstRun)
     {
-        ifstream file("dictionary.txt");
-        string line;
-        for(int i = 0; i < 45333;i++)
+        for(int i = 0; i < nEnemies;i++)
         {
-            getline(file,line);
-            wordArr[i] = line; 
+            debugEnemy[i] = new Enemy();
         }
-        rWord = wordArr[wordNum];
     }
-
-    first = 0;
-*/
+    firstRun = 0;
     static string rWord = g.myDictionary.getRandomWord();
     rWord = g.myDictionary.getRandomWord();
 
@@ -863,9 +930,44 @@ void TypeDebug()
     r.bot = g.yres/2;
     r.left = g.xres/2;
     r.center = 0;
-    //cout << rWord;
-    //ggprint8b(&rThis is a test String of text"),
     ggprint8b(&r, 16, 0x00990000, "%s",rWord.c_str());
+    string textbox;
+
+
+    int count = 0;    
+    stack<char> printStack = currentText;
+    while(!printStack.empty())
+    {
+        textbox.push_back(printStack.top());
+        printStack.pop();
+        count++;
+    }
+    std::reverse(textbox.begin(),textbox.end());
+ 
+ 
+ 
+    for(int i =0; i < nEnemies;i++)
+    {
+        debugEnemy[i]->draw();
+     
+
+        std::transform(textbox.begin(), textbox.end(), textbox.begin(),
+                [](unsigned char c){ return static_cast<unsigned char>(std::toupper(c)); });
+
+
+
+            if(debugEnemy[i]->checkMatch(textbox))
+            {
+                debugEnemy[i] = new Enemy();
+                stack<char> emptyText;
+                currentText =  emptyText;
+            }
+    }
+ 
+ 
+ 
+ 
+    ggprint8b(&r, 16, 0x00990000, "%s",textbox.c_str());
 
 
 }
@@ -893,7 +995,7 @@ void DrawGame()
     glEnd();
     glPopMatrix();
 
-    
+
     glBindTexture(GL_TEXTURE_2D, 0);
     g.rtri  += 4.0f;
 
@@ -925,9 +1027,9 @@ void DrawGLSkybox()
 
     float scale = 50.0f;
     glPushMatrix();
-    
+
     glDisable(GL_LIGHTING);
-    
+
     glTranslatef(0.0f,0.0f,-scale/1.0f);
     glRotatef(0,1.0f,0.0f,0.0f);
     glScalef(scale,scale,scale);
@@ -1047,8 +1149,8 @@ void DrawGLSkybox()
     glBindTexture(GL_TEXTURE_2D, 0);
     glEnable(GL_LIGHTING);
     glPopMatrix();
-    
-    
+
+
     //////
     glPushMatrix();
     glDisable(GL_LIGHTING);
@@ -1092,7 +1194,7 @@ void DrawGLSkybox()
 
 
 
-   //////top
+    //////top
     glPushMatrix();
     glDisable(GL_LIGHTING);
     glTranslatef(0.0f,scale,0.0f);
@@ -1147,8 +1249,6 @@ void render(void)
     g.cameraFront[1] = sin( g.pitch * (2.0f * (PI/180.0f)));
     g.cameraFront[2] = sin(g.yaw * (2.0f * (PI /180.0f))) * cos(g.pitch * (2.0f * (PI/180.0f)));
 
-
-
     Rect r;
     glClear(GL_COLOR_BUFFER_BIT);
     //
@@ -1170,7 +1270,7 @@ void render(void)
         case 0:break;              
         case 1: TypeDebug(); break;
         case 2: DrawGame(); break;
-  
+
     }
     //Set 2D mode (no perspective)
     glMatrixMode(GL_PROJECTION);
@@ -1183,8 +1283,9 @@ void render(void)
     r.left = 10;
     r.center = 0;
     ggprint8b(&r, 16, 0x00887766, "3480");
-    ggprint8b(&r, 16, 0x008877aa, "L - change light position");
-    ggprint8b(&r, 16, 0x008877aa, "M - create maze");
+    //ggprint8b(&r, 16, 0x008877aa, "L - change light position");
+    ggprint8b(&r, 16, 0x008877aa, "1 - type debug");
+    ggprint8b(&r, 16, 0x008877aa, "2 -  game");
     ggprint8b(&r, 16, 0x008877aa, "FORWARD,LEFT,BACK,RIGHT - MOVE");
     ggprint8b(&r, 16, 0x008877aa, "O,P - TURN");
     ggprint8b(&r, 16, 0x008877aa, "U,I - UP,DOWN");

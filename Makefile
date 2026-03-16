@@ -1,8 +1,7 @@
-all: lab6
+all: main
 
-lab6: lab6.cpp dictionary.h dictionary.cpp
-	g++ lab6.cpp dictionary.h dictionary.cpp libggfonts.a -Wall -olab6 -lX11 -lGL -lGLU -lm
+main: main.cpp dictionary.h dictionary.cpp
+	g++ main.cpp dictionary.h dictionary.cpp libggfonts.a -Wall -okeyboardwarriors -lX11 -lGL -lGLU -lm
 
 clean:
-	rm -f lab6
-
+	rm -f keyboardwarriors
