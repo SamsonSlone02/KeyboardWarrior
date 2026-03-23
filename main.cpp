@@ -84,7 +84,7 @@ class Image {
             unlink(ppmname);
         }
 };
-Image img[5] = {"wall.png","carpet.png","sky4.jpg","ascii.png","enemy.png"};
+Image img[5] = {"wall.png","carpet.png","sky4.jpg","ascii.png","selfie_cat.png"};
 
 class Texture {
     public:
@@ -1221,8 +1221,9 @@ void TypeDebug()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	DrawGLSkybox();
 
-    g.textbox = "";
+    	g.textbox = "";
 	Rect r;
+
 	
 
 
@@ -1234,30 +1235,32 @@ void TypeDebug()
 		printStack.pop();
 		count++;
 	}
+	
 	std::reverse(g.textbox.begin(),g.textbox.end());
+	std::transform(g.textbox.begin(), g.textbox.end(), g.textbox.begin(),
+		    [](unsigned char c){ return static_cast<unsigned char>(std::toupper(c)); });
 
 
 
 	for(int i =0; i < nEnemies;i++)
 	{
 
-        if(debugEnemy[i]->checkMatch(g.textbox))
-		{
-			debugEnemy[i] = new Enemy();
-			stack<char> emptyText;
-			currentText =  emptyText;
-		}
-        cout << debugEnemy[i]->word << endl;
-        debugEnemy[i]->update();
-		debugEnemy[i]->draw();
-
-
-		std::transform(g.textbox.begin(), g.textbox.end(), g.textbox.begin(),
-				[](unsigned char c){ return static_cast<unsigned char>(std::toupper(c)); });
+	    if(debugEnemy[i]->checkMatch(g.textbox))
+	    {
+		debugEnemy[i] = new Enemy();
+		stack<char> emptyText;
+		currentText =  emptyText;
+	    }
+	    cout << g.textbox << endl;
+	  //  cout << debugEnemy[i]->word << endl;
+	    debugEnemy[i]->update();
+	    debugEnemy[i]->draw();
 
 
 
-		
+
+
+
 	}
 
 	drawMap();
@@ -1284,267 +1287,267 @@ void TypeDebug()
 
 void DrawGame()
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	DrawGLSkybox();
-	//glLoadIdentity();
-	glPushMatrix();
-	glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
-	glTranslatef(-1.5f,-0.0f,-6.0f);
-	glRotatef(50,0.0f,1.0f,0.0f);
-	glColor3f(0.6f,0.7f,0.8f);
-	glBegin(GL_TRIANGLES);
-	glNormal3f( 0.0f, 0.0f, -1.0f);
-	glVertex3f( 0.0f, 1.0f, 0.0f);
-	glVertex3f( 1.0f,-1.0f, 0.0f);
-	glVertex3f(-1.0f,-1.0f, 0.0f);
-	//back side
-	glNormal3f( 0.0f, 0.0f, 1.0f);
-	glVertex3f( 0.0f, 1.0f, 0.01f);
-	glVertex3f( 1.0f,-1.0f, 0.01f);
-	glVertex3f(-1.0f,-1.0f, 0.01f);
-	glEnd();
-	glPopMatrix();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    DrawGLSkybox();
+    //glLoadIdentity();
+    glPushMatrix();
+    glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
+    glTranslatef(-1.5f,-0.0f,-6.0f);
+    glRotatef(50,0.0f,1.0f,0.0f);
+    glColor3f(0.6f,0.7f,0.8f);
+    glBegin(GL_TRIANGLES);
+    glNormal3f( 0.0f, 0.0f, -1.0f);
+    glVertex3f( 0.0f, 1.0f, 0.0f);
+    glVertex3f( 1.0f,-1.0f, 0.0f);
+    glVertex3f(-1.0f,-1.0f, 0.0f);
+    //back side
+    glNormal3f( 0.0f, 0.0f, 1.0f);
+    glVertex3f( 0.0f, 1.0f, 0.01f);
+    glVertex3f( 1.0f,-1.0f, 0.01f);
+    glVertex3f(-1.0f,-1.0f, 0.01f);
+    glEnd();
+    glPopMatrix();
 
 
-	glBindTexture(GL_TEXTURE_2D, 0);
-	g.rtri  += 4.0f;
+    glBindTexture(GL_TEXTURE_2D, 0);
+    g.rtri  += 4.0f;
 
-	checkCameraTurn();
-	/*
-	   if(!g.cameraBusy)
-	   {
-	   static float distance = 0;
-	   const float err =0.1f;
-	   Vec cfuTemp; //camera front updated temp
-	   vecScale(g.cameraFront,g.moveSpeed,cfuTemp);
-	   vecAdd(g.cameraPos,cfuTemp,g.cameraPos);
-	   char cur = g.steps[g.currentStep];
-	   distance+=g.moveSpeed;
-	   if(distance <= 2.0f+err && distance >=2.0f-err)
-	   {
-	   g.targetCameraYaw = cur;
-	   printf("turning %c",g.targetCameraYaw);
-	   g.currentStep++;
-	   distance=0;
-	   }
-	   fflush(stdout);
-	   }
-	   */
+    checkCameraTurn();
+    /*
+       if(!g.cameraBusy)
+       {
+       static float distance = 0;
+       const float err =0.1f;
+       Vec cfuTemp; //camera front updated temp
+       vecScale(g.cameraFront,g.moveSpeed,cfuTemp);
+       vecAdd(g.cameraPos,cfuTemp,g.cameraPos);
+       char cur = g.steps[g.currentStep];
+       distance+=g.moveSpeed;
+       if(distance <= 2.0f+err && distance >=2.0f-err)
+       {
+       g.targetCameraYaw = cur;
+       printf("turning %c",g.targetCameraYaw);
+       g.currentStep++;
+       distance=0;
+       }
+       fflush(stdout);
+       }
+       */
 }
 
 
 void DrawGLSkybox()
 {
 
-	float scale = 50.0f;
-	glPushMatrix();
+    float scale = 50.0f;
+    glPushMatrix();
 
-	glDisable(GL_LIGHTING);
+    glDisable(GL_LIGHTING);
 
-	glTranslatef(0.0f,0.0f,-scale/1.0f);
-	glRotatef(0,1.0f,0.0f,0.0f);
-	glScalef(scale,scale,scale);
-	glColor3f(1.0f,0.5f,0.5f);
-	glBindTexture(GL_TEXTURE_2D, g.skyTex.backTexture);
-	glBegin(GL_QUADS);
-	//back side
-	glNormal3f( 0.0f, 0.0f, -1.0f);
-	glVertex3f(-1.0f, 1.0f, 0.0f);
-	glVertex3f( 1.0f, 1.0f, 0.0f);
-	glVertex3f( 1.0f,-1.0f, 0.0f);
-	glVertex3f(-1.0f,-1.0f, 0.0f);
+    glTranslatef(0.0f,0.0f,-scale/1.0f);
+    glRotatef(0,1.0f,0.0f,0.0f);
+    glScalef(scale,scale,scale);
+    glColor3f(1.0f,0.5f,0.5f);
+    glBindTexture(GL_TEXTURE_2D, g.skyTex.backTexture);
+    glBegin(GL_QUADS);
+    //back side
+    glNormal3f( 0.0f, 0.0f, -1.0f);
+    glVertex3f(-1.0f, 1.0f, 0.0f);
+    glVertex3f( 1.0f, 1.0f, 0.0f);
+    glVertex3f( 1.0f,-1.0f, 0.0f);
+    glVertex3f(-1.0f,-1.0f, 0.0f);
 
-	//front
-	////bind()
-	glNormal3f( 0.0f, 0.0f, 1.0f);
-
-
-	glColor3f(1.0f,1.0f,1.0f);
-
-	glTexCoord2f(0.0f, 0.0f);
-	glVertex3f(-1.0f, 1.0f, 0.01f);
-
-	glTexCoord2f(1.0f, 0.0f);
-	glVertex3f( 1.0f, 1.0f, 0.01f);
-
-	glTexCoord2f(1.0f, 1.0f);
-	glVertex3f( 1.0f,-1.0f, 0.01f);
-
-	glTexCoord2f(0.0f, 1.0f);
-	glVertex3f(-1.0f,-1.0f, 0.01f);
-
-	//bind(0)    
-	glEnd();
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glEnable(GL_LIGHTING);
-	glPopMatrix();
+    //front
+    ////bind()
+    glNormal3f( 0.0f, 0.0f, 1.0f);
 
 
-	glPushMatrix();
-	glDisable(GL_LIGHTING);
-	glTranslatef(0.0f,0.0f,scale/1.0f);
-	glRotatef(180,0.0f,1.0f,0.0f);
-	glScalef(scale,scale,scale);
-	glColor3f(1.0f,0.5f,0.5f);
-	glBindTexture(GL_TEXTURE_2D, g.skyTex.backTexture);
-	glBegin(GL_QUADS);
-	//back side
-	glNormal3f( 0.0f, 0.0f, -1.0f);
-	glVertex3f(-1.0f, 1.0f, 0.0f);
-	glVertex3f( 1.0f, 1.0f, 0.0f);
-	glVertex3f( 1.0f,-1.0f, 0.0f);
-	glVertex3f(-1.0f,-1.0f, 0.0f);
+    glColor3f(1.0f,1.0f,1.0f);
 
-	//front
-	////bind()
-	glNormal3f( 0.0f, 0.0f, 1.0f);
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-1.0f, 1.0f, 0.01f);
 
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex3f( 1.0f, 1.0f, 0.01f);
 
-	glColor3f(1.0f,1.0f,1.0f);
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex3f( 1.0f,-1.0f, 0.01f);
 
-	glTexCoord2f(0.0f, 0.0f);
-	glVertex3f(-1.0f, 1.0f, 0.01f);
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex3f(-1.0f,-1.0f, 0.01f);
 
-	glTexCoord2f(1.0f, 0.0f);
-	glVertex3f( 1.0f, 1.0f, 0.01f);
-
-	glTexCoord2f(1.0f, 1.0f);
-	glVertex3f( 1.0f,-1.0f, 0.01f);
-
-	glTexCoord2f(0.0f, 1.0f);
-	glVertex3f(-1.0f,-1.0f, 0.01f);
-
-	//bind(0)    
-	glEnd();
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glEnable(GL_LIGHTING);
-	glPopMatrix();
-
-	//////
-	glPushMatrix();
-	glDisable(GL_LIGHTING);
-	glTranslatef(-scale/1.0f,0.0f,0.0f);
-	glRotatef(90,0.0f,1.0f,0.0f);
-	glScalef(scale,scale,scale);
-	glColor3f(1.0f,0.5f,0.5f);
-	glBindTexture(GL_TEXTURE_2D, g.skyTex.backTexture);
-	glBegin(GL_QUADS);
-	//back side
-	glNormal3f( 0.0f, 0.0f, -1.0f);
-	glVertex3f(-1.0f, 1.0f, 0.0f);
-	glVertex3f( 1.0f, 1.0f, 0.0f);
-	glVertex3f( 1.0f,-1.0f, 0.0f);
-	glVertex3f(-1.0f,-1.0f, 0.0f);
-
-	//front
-	////bind()
-	glNormal3f( 0.0f, 0.0f, 1.0f);
+    //bind(0)    
+    glEnd();
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glEnable(GL_LIGHTING);
+    glPopMatrix();
 
 
-	glColor3f(1.0f,1.0f,1.0f);
+    glPushMatrix();
+    glDisable(GL_LIGHTING);
+    glTranslatef(0.0f,0.0f,scale/1.0f);
+    glRotatef(180,0.0f,1.0f,0.0f);
+    glScalef(scale,scale,scale);
+    glColor3f(1.0f,0.5f,0.5f);
+    glBindTexture(GL_TEXTURE_2D, g.skyTex.backTexture);
+    glBegin(GL_QUADS);
+    //back side
+    glNormal3f( 0.0f, 0.0f, -1.0f);
+    glVertex3f(-1.0f, 1.0f, 0.0f);
+    glVertex3f( 1.0f, 1.0f, 0.0f);
+    glVertex3f( 1.0f,-1.0f, 0.0f);
+    glVertex3f(-1.0f,-1.0f, 0.0f);
 
-	glTexCoord2f(0.0f, 0.0f);
-	glVertex3f(-1.0f, 1.0f, 0.01f);
-
-	glTexCoord2f(1.0f, 0.0f);
-	glVertex3f( 1.0f, 1.0f, 0.01f);
-
-	glTexCoord2f(1.0f, 1.0f);
-	glVertex3f( 1.0f,-1.0f, 0.01f);
-
-	glTexCoord2f(0.0f, 1.0f);
-	glVertex3f(-1.0f,-1.0f, 0.01f);
-
-	//bind(0)    
-	glEnd();
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glEnable(GL_LIGHTING);
-	glPopMatrix();
-
-
-	//////
-	glPushMatrix();
-	glDisable(GL_LIGHTING);
-	glTranslatef(scale/1.0f,0.0f,0.0f);
-	glRotatef(270,0.0f,1.0f,0.0f);
-	glScalef(scale,scale,scale);
-	glColor3f(1.0f,0.5f,0.5f);
-	glBindTexture(GL_TEXTURE_2D, g.skyTex.backTexture);
-	glBegin(GL_QUADS);
-	//back side
-	glNormal3f( 0.0f, 0.0f, -1.0f);
-	glVertex3f(-1.0f, 1.0f, 0.0f);
-	glVertex3f( 1.0f, 1.0f, 0.0f);
-	glVertex3f( 1.0f,-1.0f, 0.0f);
-	glVertex3f(-1.0f,-1.0f, 0.0f);
-
-	//front
-	////bind()
-	glNormal3f( 0.0f, 0.0f, 1.0f);
+    //front
+    ////bind()
+    glNormal3f( 0.0f, 0.0f, 1.0f);
 
 
-	glColor3f(1.0f,1.0f,1.0f);
+    glColor3f(1.0f,1.0f,1.0f);
 
-	glTexCoord2f(0.0f, 0.0f);
-	glVertex3f(-1.0f, 1.0f, 0.01f);
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-1.0f, 1.0f, 0.01f);
 
-	glTexCoord2f(1.0f, 0.0f);
-	glVertex3f( 1.0f, 1.0f, 0.01f);
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex3f( 1.0f, 1.0f, 0.01f);
 
-	glTexCoord2f(1.0f, 1.0f);
-	glVertex3f( 1.0f,-1.0f, 0.01f);
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex3f( 1.0f,-1.0f, 0.01f);
 
-	glTexCoord2f(0.0f, 1.0f);
-	glVertex3f(-1.0f,-1.0f, 0.01f);
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex3f(-1.0f,-1.0f, 0.01f);
 
-	//bind(0)    
-	glEnd();
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glEnable(GL_LIGHTING);
-	glPopMatrix();
+    //bind(0)    
+    glEnd();
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glEnable(GL_LIGHTING);
+    glPopMatrix();
 
+    //////
+    glPushMatrix();
+    glDisable(GL_LIGHTING);
+    glTranslatef(-scale/1.0f,0.0f,0.0f);
+    glRotatef(90,0.0f,1.0f,0.0f);
+    glScalef(scale,scale,scale);
+    glColor3f(1.0f,0.5f,0.5f);
+    glBindTexture(GL_TEXTURE_2D, g.skyTex.backTexture);
+    glBegin(GL_QUADS);
+    //back side
+    glNormal3f( 0.0f, 0.0f, -1.0f);
+    glVertex3f(-1.0f, 1.0f, 0.0f);
+    glVertex3f( 1.0f, 1.0f, 0.0f);
+    glVertex3f( 1.0f,-1.0f, 0.0f);
+    glVertex3f(-1.0f,-1.0f, 0.0f);
 
-
-	//////top
-	glPushMatrix();
-	glDisable(GL_LIGHTING);
-	glTranslatef(0.0f,scale,0.0f);
-	glRotatef(90,1.0f,0.0f,0.0f);
-	glScalef(scale,scale,scale);
-	glColor3f(1.0f,0.5f,0.5f);
-	glBindTexture(GL_TEXTURE_2D, g.skyTex.backTexture);
-	glBegin(GL_QUADS);
-	//back side
-	glNormal3f( 0.0f, 0.0f, -1.0f);
-	glVertex3f(-1.0f, 1.0f, 0.0f);
-	glVertex3f( 1.0f, 1.0f, 0.0f);
-	glVertex3f( 1.0f,-1.0f, 0.0f);
-	glVertex3f(-1.0f,-1.0f, 0.0f);
-
-	//front
-	////bind()
-	glNormal3f( 0.0f, 0.0f, 1.0f);
+    //front
+    ////bind()
+    glNormal3f( 0.0f, 0.0f, 1.0f);
 
 
-	glColor3f(1.0f,1.0f,1.0f);
+    glColor3f(1.0f,1.0f,1.0f);
 
-	glTexCoord2f(0.0f, 0.0f);
-	glVertex3f(-1.0f, 1.0f, 0.01f);
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-1.0f, 1.0f, 0.01f);
 
-	glTexCoord2f(1.0f, 0.0f);
-	glVertex3f( 1.0f, 1.0f, 0.01f);
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex3f( 1.0f, 1.0f, 0.01f);
 
-	glTexCoord2f(1.0f, 1.0f);
-	glVertex3f( 1.0f,-1.0f, 0.01f);
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex3f( 1.0f,-1.0f, 0.01f);
 
-	glTexCoord2f(0.0f, 1.0f);
-	glVertex3f(-1.0f,-1.0f, 0.01f);
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex3f(-1.0f,-1.0f, 0.01f);
 
-	//bind(0)    
-	glEnd();
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glEnable(GL_LIGHTING);
-	glPopMatrix();
+    //bind(0)    
+    glEnd();
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glEnable(GL_LIGHTING);
+    glPopMatrix();
+
+
+    //////
+    glPushMatrix();
+    glDisable(GL_LIGHTING);
+    glTranslatef(scale/1.0f,0.0f,0.0f);
+    glRotatef(270,0.0f,1.0f,0.0f);
+    glScalef(scale,scale,scale);
+    glColor3f(1.0f,0.5f,0.5f);
+    glBindTexture(GL_TEXTURE_2D, g.skyTex.backTexture);
+    glBegin(GL_QUADS);
+    //back side
+    glNormal3f( 0.0f, 0.0f, -1.0f);
+    glVertex3f(-1.0f, 1.0f, 0.0f);
+    glVertex3f( 1.0f, 1.0f, 0.0f);
+    glVertex3f( 1.0f,-1.0f, 0.0f);
+    glVertex3f(-1.0f,-1.0f, 0.0f);
+
+    //front
+    ////bind()
+    glNormal3f( 0.0f, 0.0f, 1.0f);
+
+
+    glColor3f(1.0f,1.0f,1.0f);
+
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-1.0f, 1.0f, 0.01f);
+
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex3f( 1.0f, 1.0f, 0.01f);
+
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex3f( 1.0f,-1.0f, 0.01f);
+
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex3f(-1.0f,-1.0f, 0.01f);
+
+    //bind(0)    
+    glEnd();
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glEnable(GL_LIGHTING);
+    glPopMatrix();
+
+
+
+    //////top
+    glPushMatrix();
+    glDisable(GL_LIGHTING);
+    glTranslatef(0.0f,scale,0.0f);
+    glRotatef(90,1.0f,0.0f,0.0f);
+    glScalef(scale,scale,scale);
+    glColor3f(1.0f,0.5f,0.5f);
+    glBindTexture(GL_TEXTURE_2D, g.skyTex.backTexture);
+    glBegin(GL_QUADS);
+    //back side
+    glNormal3f( 0.0f, 0.0f, -1.0f);
+    glVertex3f(-1.0f, 1.0f, 0.0f);
+    glVertex3f( 1.0f, 1.0f, 0.0f);
+    glVertex3f( 1.0f,-1.0f, 0.0f);
+    glVertex3f(-1.0f,-1.0f, 0.0f);
+
+    //front
+    ////bind()
+    glNormal3f( 0.0f, 0.0f, 1.0f);
+
+
+    glColor3f(1.0f,1.0f,1.0f);
+
+    glTexCoord2f(0.0f, 0.0f);
+    glVertex3f(-1.0f, 1.0f, 0.01f);
+
+    glTexCoord2f(1.0f, 0.0f);
+    glVertex3f( 1.0f, 1.0f, 0.01f);
+
+    glTexCoord2f(1.0f, 1.0f);
+    glVertex3f( 1.0f,-1.0f, 0.01f);
+
+    glTexCoord2f(0.0f, 1.0f);
+    glVertex3f(-1.0f,-1.0f, 0.01f);
+
+    //bind(0)    
+    glEnd();
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glEnable(GL_LIGHTING);
+    glPopMatrix();
 
 
 }
@@ -1557,52 +1560,52 @@ void render(void)
 
 
 
-	glClear(GL_COLOR_BUFFER_BIT);
-	//
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	gluPerspective(90.0f,(GLfloat)g.xres/(GLfloat)g.yres,0.1f,100.0f);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	//Enable this so material colors are the same as vert colors.
-	glEnable(GL_COLOR_MATERIAL);
-	glEnable(GL_LIGHTING);
+    glClear(GL_COLOR_BUFFER_BIT);
+    //
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(90.0f,(GLfloat)g.xres/(GLfloat)g.yres,0.1f,100.0f);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    //Enable this so material colors are the same as vert colors.
+    glEnable(GL_COLOR_MATERIAL);
+    glEnable(GL_LIGHTING);
 
 
 
-	//
-	g.cameraFront[0] = cos(g.yaw * (2.0f * (PI /180.0f))) * cos(g.pitch * (2.0f * (PI/180.0f)));
-	g.cameraFront[1] = sin( g.pitch * (2.0f * (PI/180.0f)));
-	g.cameraFront[2] = sin(g.yaw * (2.0f * (PI /180.0f))) * cos(g.pitch * (2.0f * (PI/180.0f)));
-	Vec added;
-	vecAdd(g.cameraPos,g.cameraFront,added);
-	gluLookAt((double)g.cameraPos[0],(double)g.cameraPos[1],(double)g.cameraPos[2],  (double)added[0],(double)added[1],(double)added[2],(double)g.cameraUp[0],(double)g.cameraUp[1],(double)g.cameraUp[2]);
-	switch (g.lesson_num) {
-		case 0:break;              
-		case 1: TypeDebug(); break;
-		case 2: DrawGame(); break;
+    //
+    g.cameraFront[0] = cos(g.yaw * (2.0f * (PI /180.0f))) * cos(g.pitch * (2.0f * (PI/180.0f)));
+    g.cameraFront[1] = sin( g.pitch * (2.0f * (PI/180.0f)));
+    g.cameraFront[2] = sin(g.yaw * (2.0f * (PI /180.0f))) * cos(g.pitch * (2.0f * (PI/180.0f)));
+    Vec added;
+    vecAdd(g.cameraPos,g.cameraFront,added);
+    gluLookAt((double)g.cameraPos[0],(double)g.cameraPos[1],(double)g.cameraPos[2],  (double)added[0],(double)added[1],(double)added[2],(double)g.cameraUp[0],(double)g.cameraUp[1],(double)g.cameraUp[2]);
+    switch (g.lesson_num) {
+	case 0:break;              
+	case 1: TypeDebug(); break;
+	case 2: DrawGame(); break;
 
-	}
-	//Set 2D mode (no perspective)
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(0, g.xres, 0, g.yres, -1, 1);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
+    }
+    //Set 2D mode (no perspective)
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0, g.xres, 0, g.yres, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 
-	Rect r;
-	glDisable(GL_LIGHTING);
-	r.bot = g.yres - 20;
-	r.left = 10;
-	r.center = 0;
-	ggprint8b(&r, 16, 0x00887766, "3480");
-	//ggprint8b(&r, 16, 0x008877aa, "L - change light position");
-	ggprint8b(&r, 16, 0x008877aa, "1 - type debug");
-	ggprint8b(&r, 16, 0x008877aa, "2 -  game");
-	ggprint8b(&r, 16, 0x008877aa, "FORWARD,LEFT,BACK,RIGHT - MOVE");
-	ggprint8b(&r, 16, 0x008877aa, "O,P - TURN");
-	ggprint8b(&r, 16, 0x008877aa, "U,I - UP,DOWN");
-	ggprint8b(&r, 16, 0x008877aa, "J,K - TILT UP,TILT DOWN");
+    Rect r;
+    glDisable(GL_LIGHTING);
+    r.bot = g.yres - 20;
+    r.left = 10;
+    r.center = 0;
+    ggprint8b(&r, 16, 0x00887766, "3480");
+    //ggprint8b(&r, 16, 0x008877aa, "L - change light position");
+    ggprint8b(&r, 16, 0x008877aa, "1 - type debug");
+    ggprint8b(&r, 16, 0x008877aa, "2 -  game");
+    ggprint8b(&r, 16, 0x008877aa, "FORWARD,LEFT,BACK,RIGHT - MOVE");
+    ggprint8b(&r, 16, 0x008877aa, "O,P - TURN");
+    ggprint8b(&r, 16, 0x008877aa, "U,I - UP,DOWN");
+    ggprint8b(&r, 16, 0x008877aa, "J,K - TILT UP,TILT DOWN");
 }
 
 
