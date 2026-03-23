@@ -132,6 +132,7 @@ class Global {
         float moveSpeed = 0.2f;
 
         Dictionary myDictionary;
+        string textbox;
 
         int typeMode;
 
@@ -692,11 +693,14 @@ void checkCameraTurn()
 class Enemy
 {
     private:
-        string word;
+        
         Vec tpos;
         Vec pos;
+        int speed;
+        int numCorrect;
         // Texure texture;
     public:
+        string word;
         Enemy()
         {
             //   texture;
@@ -704,8 +708,8 @@ class Enemy
             word = g.myDictionary.getRandomWord();
             tpos[0] = rand() % (g.xres - 30);
             tpos[1] = rand() % (g.yres - 30);
-          
-          
+            
+            speed = 2;
           
           
             pos[0] = rand() % 500;
@@ -717,8 +721,25 @@ class Enemy
           //pos[0] = 0;
           //pos[1] = 0;
           //pos[2] = 0;
-          
+            numCorrect = 0;
             cout << pos[0] << ", " << pos[1] << ", " << pos[2] << endl;
+        }
+        void update()
+        {
+            
+                Vec playerDir;
+                vecMake(g.cameraPos[0],g.cameraPos[1],g.cameraPos[2],playerDir);
+                vecSub(g.cameraPos,pos,playerDir);
+                vecNormalize(playerDir);
+                vecScale(playerDir, speed * 0.005f,playerDir);
+                vecAdd(pos,playerDir,pos);
+                numCorrect = 0;
+                for(int i = 0; i < (int)g.textbox.length();i++)
+                {
+                    if(g.textbox[i] != word[i])
+                        break;
+                    numCorrect = i + 1;
+                }
         }
         string getWord()
         {
@@ -737,6 +758,8 @@ class Enemy
             int wl = input.length();
             const string textureKey = " ! #$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[ ]^_ abcdefghijklmnopqrstuvwxyz{|}~ ........................";
 
+
+                
                 float scale = 0.05f;
                 glPushMatrix();
 
@@ -775,17 +798,8 @@ class Enemy
                 float ai = (2 * i) - wl;
 		
 		
-		//back side
-		glNormal3f( 0.0f, 0.0f, -1.0f);
-		glVertex3f(-1.0f + ai, 1.0f, 0.0f);
-		glVertex3f( 1.0f + ai, 1.0f, 0.0f);
-		glVertex3f( 1.0f + ai,-1.0f, 0.0f);
-		glVertex3f(-1.0f + ai,-1.0f, 0.0f);
-		//front
-		glNormal3f( 0.0f, 0.0f, 1.0f);
-		glColor3f(1.0f,1.0f,1.0f);
 
-		int ty = floor(textureIndex / 15);
+        int ty = floor(textureIndex / 15);
 		int tx = (textureIndex % 15);
 
 
@@ -794,15 +808,52 @@ class Enemy
 		float tx2 = tx1 + 1.0f/15.0f;
 		float ty1 = ty * 1.0f/8.0f;
 		float ty2 = ty1 + 1.0f/8.0f;
+
+		//back side
+        float typeJumpAmt = 0.4f;
+        if(numCorrect > 0 && i <= numCorrect - 1)
+        {
+		glNormal3f( 0.0f, 0.0f, -1.0f);
+		glVertex3f(-1.0f + ai, 1.0f + typeJumpAmt, 0.0f);
+		glVertex3f( 1.0f + ai, 1.0f + typeJumpAmt, 0.0f);
+		glVertex3f( 1.0f + ai,-1.0f + typeJumpAmt, 0.0f);
+		glVertex3f(-1.0f + ai,-1.0f + typeJumpAmt, 0.0f);
+
+        glColor3f(0.5f,0.5f,0.5f);
+        glTexCoord2f(tx1, ty2); glVertex3f(-1.0f + ai, -1.0f + typeJumpAmt, 0.01f);
+		glTexCoord2f(tx1, ty1); glVertex3f( -1.0f + ai, 1.0f + typeJumpAmt, 0.01f);
+		glTexCoord2f(tx2, ty1); glVertex3f( 1.0f + ai,1.0f + typeJumpAmt, 0.01f);
+		glTexCoord2f(tx2, ty2); glVertex3f(1.0f + ai,-1.0f + typeJumpAmt, 0.01f);
+        
+        }
+        else
+        {
+		glNormal3f( 0.0f, 0.0f, -1.0f);
+		glVertex3f(-1.0f + ai, 1.0f , 0.0f);
+		glVertex3f( 1.0f + ai, 1.0f, 0.0f);
+		glVertex3f( 1.0f + ai,-1.0f, 0.0f);
+		glVertex3f(-1.0f + ai,-1.0f, 0.0f);
+        
+        glColor3f(1.0f,1.0f,1.0f);
+        glTexCoord2f(tx1, ty2); glVertex3f(-1.0f + ai, -1.0f , 0.01f);
+		glTexCoord2f(tx1, ty1); glVertex3f( -1.0f + ai, 1.0f , 0.01f);
+		glTexCoord2f(tx2, ty1); glVertex3f( 1.0f + ai,1.0f , 0.01f);
+		glTexCoord2f(tx2, ty2); glVertex3f(1.0f + ai,-1.0f , 0.01f);
+        
+        }
+        
+        //front
+		glNormal3f( 0.0f, 0.0f, 1.0f);
+		
+
+		
 		//cout << input[i] << endl;
 		//cout << textureIndex << endl;
 		//cout << tx<< ",  " << ty << endl;
 
 
-		glTexCoord2f(tx1, ty2); glVertex3f(-1.0f + ai, -1.0f, 0.01f);
-		glTexCoord2f(tx1, ty1); glVertex3f( -1.0f + ai, 1.0f, 0.01f);
-		glTexCoord2f(tx2, ty1); glVertex3f( 1.0f + ai,1.0f, 0.01f);
-		glTexCoord2f(tx2, ty2); glVertex3f(1.0f + ai,-1.0f, 0.01f);
+
+		
 
 
 
@@ -1170,38 +1221,43 @@ void TypeDebug()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	DrawGLSkybox();
 
+    g.textbox = "";
 	Rect r;
-	string textbox;
+	
 
 
 	int count = 0;    
 	stack<char> printStack = currentText;
 	while(!printStack.empty())
 	{
-		textbox.push_back(printStack.top());
+		g.textbox.push_back(printStack.top());
 		printStack.pop();
 		count++;
 	}
-	std::reverse(textbox.begin(),textbox.end());
+	std::reverse(g.textbox.begin(),g.textbox.end());
 
 
 
 	for(int i =0; i < nEnemies;i++)
 	{
-		debugEnemy[i]->draw();
 
-
-		std::transform(textbox.begin(), textbox.end(), textbox.begin(),
-				[](unsigned char c){ return static_cast<unsigned char>(std::toupper(c)); });
-
-
-
-		if(debugEnemy[i]->checkMatch(textbox))
+        if(debugEnemy[i]->checkMatch(g.textbox))
 		{
 			debugEnemy[i] = new Enemy();
 			stack<char> emptyText;
 			currentText =  emptyText;
 		}
+        cout << debugEnemy[i]->word << endl;
+        debugEnemy[i]->update();
+		debugEnemy[i]->draw();
+
+
+		std::transform(g.textbox.begin(), g.textbox.end(), g.textbox.begin(),
+				[](unsigned char c){ return static_cast<unsigned char>(std::toupper(c)); });
+
+
+
+		
 	}
 
 	drawMap();
@@ -1219,7 +1275,7 @@ void TypeDebug()
 	r.bot = 0;
 	r.left = 0;
 	r.center = 0;
-	ggprint8b(&r, 16, 0x00990000, "%s",textbox.c_str());
+	ggprint8b(&r, 16, 0x00990000, "%s",g.textbox.c_str());
 	glPopMatrix();
 
 
