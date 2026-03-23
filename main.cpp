@@ -707,17 +707,16 @@ class Enemy
           
           
           
-          /*
+          
             pos[0] = rand() % 500;
             pos[0] = float(pos[0]) / 100;
-            pos[1] = (rand() % 750) - 375;
-            pos[1] = float(pos[1]) / 100;
+            pos[1] = 0;
             pos[2] = rand() % 500;
             pos[2] = float(pos[2]) / 100;
-          */
-          pos[0] = -1;
-          pos[1] = 0;
-          pos[2] = -2;
+          
+          //pos[0] = 0;
+          //pos[1] = 0;
+          //pos[2] = 0;
           
             cout << pos[0] << ", " << pos[1] << ", " << pos[2] << endl;
         }
@@ -738,28 +737,24 @@ class Enemy
             int wl = input.length();
             const string textureKey = " ! #$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[ ]^_ abcdefghijklmnopqrstuvwxyz{|}~ ........................";
 
-                float scale = 0.1f;
+                float scale = 0.05f;
                 glPushMatrix();
 
                 
                 
                
                 Vec playerDir;
-                cout << g.cameraPos[0] << ", " << g.cameraPos[2] << "----CAMERA----" << endl;
-                cout << pos[0] << ", " << pos[2] << "----LetterPos----" << endl;
            
                 playerDir[0] =   g.cameraPos[0] - pos[0]; 
                 playerDir[2] =  g.cameraPos[2] - pos[2];
 
-                cout << playerDir[0] << ", " << playerDir[2] << "--------" << endl;
                 
                 //vecNormalize(playerDir);
                 float adj_angle = -(atan2(playerDir[2],playerDir[0]) * (180/PI));
                 int textRot = (((int)adj_angle + 360) % 360) + 90;
-                cout << textRot << endl;
            
+                glTranslatef(pos[0] ,0.5f,pos[2]);
                 glRotatef((textRot),0.0f,1.0f,0.0f);
-                glTranslatef(pos[0] + (0*(2 * scale)) ,1.25,pos[2]);
                 glScalef(scale,scale,scale);
                 glColor3f(1.0f,0.5f,0.5f);
                 glBindTexture(GL_TEXTURE_2D, g.asciiTex.backTexture);
@@ -777,7 +772,9 @@ class Enemy
 
                 }
                 
-                float ai = (2 * i) - (wl) ;
+                float ai = (2 * i) - wl;
+		
+		
 		//back side
 		glNormal3f( 0.0f, 0.0f, -1.0f);
 		glVertex3f(-1.0f + ai, 1.0f, 0.0f);
@@ -820,13 +817,13 @@ class Enemy
 	    }
 	    glEnd();
 	    glPopMatrix();
-		glBindTexture(GL_TEXTURE_2D, 0);
+	    glBindTexture(GL_TEXTURE_2D, 0);
 
 	}
 	void drawEnemy()
 	{
 
-		float scale = 1.0f;
+		float scale = 0.4f;
 		glPushMatrix();
 
 		Vec playerDir;
@@ -836,10 +833,10 @@ class Enemy
 
 		float adj_angle = -(atan2(playerDir[2],playerDir[0]) * (180/PI));
 		int enemyRot = (((int)adj_angle + 360) % 360) + 90;
-		cout << enemyRot << endl;
 
-		glRotatef((enemyRot),0.0f,1.0f,0.0f);
-		glTranslatef(pos[0] ,0,pos[2]);
+		
+		glTranslatef(pos[0] ,(1 * scale)-1,pos[2]);
+        glRotatef((enemyRot),0.0f,1.0f,0.0f);
 		glScalef(scale,scale,scale);
 
 		glColor3f(1.0f,0.5f,0.5f);
@@ -854,13 +851,6 @@ class Enemy
 		//front
 		glNormal3f( 0.0f, 0.0f, 1.0f);
 		glColor3f(1.0f,1.0f,1.0f);
-
-
-		float tx1 = 0;
-		float tx2 = 1;
-		float ty1 = 0;
-		float ty2 = 1;
-
 
 
 		glColor3f(1.0f,1.0f,1.0f);
@@ -878,10 +868,10 @@ class Enemy
 		glVertex3f(-1.0f,-1.0f, 0.01f);
 
 
-	//	glTexCoord2f(tx1, ty2); glVertex3f(-1.0f, -1.0f, 0.01f);
-//		glTexCoord2f(tx1, ty1); glVertex3f( -1.0f, 1.0f, 0.01f);
-//		glTexCoord2f(tx2, ty1); glVertex3f( 1.0f ,1.0f, 0.01f);
-//		glTexCoord2f(tx2, ty2); glVertex3f(1.0f,-1.0f, 0.01f);
+		//	glTexCoord2f(tx1, ty2); glVertex3f(-1.0f, -1.0f, 0.01f);
+		//		glTexCoord2f(tx1, ty1); glVertex3f( -1.0f, 1.0f, 0.01f);
+		//		glTexCoord2f(tx2, ty1); glVertex3f( 1.0f ,1.0f, 0.01f);
+		//		glTexCoord2f(tx2, ty2); glVertex3f(1.0f,-1.0f, 0.01f);
 
 
 		glEnd();
@@ -938,6 +928,7 @@ void createTile(int x, int y, int z, bool n, bool e, bool s, bool w)
 {
 	//FLOOR
 	glPushMatrix();
+    
 	//glLoadIdentity();
 	glTranslatef(x+1.5f,y-1.0f,z-5.0f);
 	glRotatef(-90.0f,1.0f,0.0f,0.0f);
@@ -1136,7 +1127,27 @@ void createTile(int x, int y, int z, bool n, bool e, bool s, bool w)
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-const int nEnemies = 1;
+void drawMap()
+{
+	int height = 30;
+	int width = 30;
+
+	for(int i =-height; i < height;i++)
+	{
+		for(int j = -width; j < width;j++)
+		{
+            if(j % 2 != 0 && i % 2 == 0)
+			    createTile(i * 2,0,j * 2,false,true,false,true);
+            if(j % 2 == 0 && i % 2 !=0)
+                createTile(i * 2,0,j * 2,true,false,true,false);
+            else 
+                createTile(i * 2,0,j * 2,false,false,false,false);
+		}   
+	}
+
+}
+
+const int nEnemies = 4;
 Enemy * debugEnemy[nEnemies];
 
 void TypeDebug()
@@ -1154,7 +1165,9 @@ void TypeDebug()
 	static string rWord = g.myDictionary.getRandomWord();
 	rWord = g.myDictionary.getRandomWord();
 	g.targetCameraYaw = ' ';
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
+    
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	DrawGLSkybox();
 
 	Rect r;
@@ -1190,6 +1203,11 @@ void TypeDebug()
 			currentText =  emptyText;
 		}
 	}
+
+	drawMap();
+
+
+
 	glPushMatrix();
 	glEnable(GL_TEXTURE_2D);
 	glMatrixMode(GL_PROJECTION);
