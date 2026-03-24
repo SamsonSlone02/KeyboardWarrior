@@ -44,48 +44,83 @@ class PlayerData
 stack<char> currentText;
 
 
-class Image {
-    public:
-        int width, height;
-        unsigned char *data;
-        ~Image() { delete [] data; }
-        Image(const char *fname) {
-            if (fname[0] == '\0')
-                return;
-            char name[40];
-            strcpy(name, fname);
-            int slen = strlen(name);
-            name[slen-4] = '\0';
-            char ppmname[80];
-            sprintf(ppmname,"%s.ppm", name);
-            char ts[100];
-            sprintf(ts, "convert %s %s", fname, ppmname);
-            system(ts);
-            FILE *fpi = fopen(ppmname, "r");
-            if (fpi) {
-                char line[200];
-                fgets(line, 200, fpi);
-                fgets(line, 200, fpi);
-                //skip comments and blank lines
-                while (line[0] == '#' || strlen(line) < 2)
-                    fgets(line, 200, fpi);
-                sscanf(line, "%i %i", &width, &height);
-                fgets(line, 200, fpi);
-                //get pixel data
-                int n = width * height * 3;			
-                data = new unsigned char[n];			
-                for (int i=0; i<n; i++)
-                    data[i] = fgetc(fpi);
-                fclose(fpi);
-            } else {
-                printf("ERROR opening image: %s\n", ppmname);
-                exit(0);
-            }
-            unlink(ppmname);
-        }
-};
-Image img[5] = {"wall.png","carpet.png","sky4.jpg","ascii.png","selfie_cat.png"};
+// class Image {
+//     public:
+//         int width, height;
+//         unsigned char *data;
+//         ~Image() { delete [] data; }
+//         Image(const char *fname) {
+//             if (fname[0] == '\0')
+//                 return;
+//             char name[40];
+//             strcpy(name, fname);
+//             int slen = strlen(name);
+//             name[slen-4] = '\0';
+//             char ppmname[80];
+//             sprintf(ppmname,"%s.ppm", name);
+//             char ts[100];
+//             sprintf(ts, "convert %s %s", fname, ppmname);
+//             system(ts);
+//             FILE *fpi = fopen(ppmname, "r");
+//             if (fpi) {
+//                 char line[200];
+//                 fgets(line, 200, fpi);
+//                 fgets(line, 200, fpi);
+//                 //skip comments and blank lines
+//                 while (line[0] == '#' || strlen(line) < 2)
+//                     fgets(line, 200, fpi);
+//                 sscanf(line, "%i %i", &width, &height);
+//                 fgets(line, 200, fpi);
+//                 //get pixel data
+//                 int n = width * height * 3;			
+//                 data = new unsigned char[n];			
+//                 for (int i=0; i<n; i++)
+//                     data[i] = fgetc(fpi);
+//                 fclose(fpi);
+//             } else {
+//                 printf("ERROR opening image: %s\n", ppmname);
+//                 exit(0);
+//             }
+//             unlink(ppmname);
+//         }
+// };
 
+class Image {
+public:
+        int width, height, max;
+        char *data;
+        Image() { }
+        Image(const char *fname) {
+                bool isPPM = true;
+                char str[1200];
+                char newfile[200];
+                ifstream fin;
+                char *p = strstr((char *)fname, ".ppm");
+                if (!p) {
+                        //not a ppm file
+                        isPPM = false;
+                        strcpy(newfile, fname);
+                        newfile[strlen(newfile)-4] = '\0';
+                        strcat(newfile, ".ppm");
+                        sprintf(str, "convert %s %s", fname, newfile);
+                        system(str);
+                        fin.open(newfile);
+                } else {
+                        fin.open(fname);
+                }
+                char p6[10];
+                fin >> p6;
+                fin >> width >> height;
+                fin >> max;
+                data = new char [width * height * 3];
+                fin.read(data, 1);
+                fin.read(data, width * height * 3);
+                fin.close();
+                if (!isPPM)
+                        unlink(newfile);
+        }
+}; Image img[7] = {"wall.png","carpet.png","sky4.jpg","ascii.png","selfie_cat.png","ceiling.png","weapon.png"};
+Image enemies[1] = {"enemy.png"};
 class Texture {
     public:
         Image *backImage;
@@ -111,6 +146,8 @@ class Global {
         Texture skyTex;
         Texture asciiTex;
         Texture enemyTex;
+        Texture weaponTex;
+        Texture ceilingTex;
         int cx;
         int cy;
         int cz;
@@ -266,7 +303,7 @@ void render(void);
 int main(void)
 {
     init_opengl();
-
+   
     // init_maze();
     g.targetCameraYaw = g.steps[0];
     g.currentStep++;
@@ -471,23 +508,100 @@ void init_opengl(void)
 
 
 
-    g.enemyTex.backImage = &img[4];
+
+
+    g.ceilingTex.backImage = &img[5];
     //create opengl texture elements
-    glGenTextures(1, &g.enemyTex.backTexture);
+    glGenTextures(1, &g.ceilingTex.backTexture);
+    w = g.ceilingTex.backImage->width;
+    h = g.ceilingTex.backImage->height;
+
+
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, g.ceilingTex.backTexture);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, 3, w, h, 0,
+            GL_RGB, GL_UNSIGNED_BYTE, g.ceilingTex.backImage->data);
+    g.ceilingTex.xc[0] = 0.0;
+    g.ceilingTex.xc[1] = 1.0;
+    g.ceilingTex.yc[0] = 0.0;
+    g.ceilingTex.yc[1] = 1.0;
+
+
+
+
+
+
+
+
+
+
+g.enemyTex.backImage = &enemies[0];
+    //create opengl texture elements
+    
     w = g.enemyTex.backImage->width;
     h = g.enemyTex.backImage->height;
 
 
     glEnable(GL_TEXTURE_2D);
+    unsigned char *data1 = new unsigned char [g.enemyTex.backImage->width * g.enemyTex.backImage->height * 4];
+            for (int i=0; i<g.enemyTex.backImage->height; i++) {
+                    for (int j=0; j<g.enemyTex.backImage->width; j++) {
+                            int offset  = i*g.enemyTex.backImage->width*3 + j*3;
+                            int offset2 = i*g.enemyTex.backImage->width*4 + j*4;
+                            data1[offset2+0] = g.enemyTex.backImage->data[offset+0];
+                            data1[offset2+1] = g.enemyTex.backImage->data[offset+1];
+                            data1[offset2+2] = g.enemyTex.backImage->data[offset+2];
+                            data1[offset2+3] =
+                                    ((unsigned char)g.enemyTex.backImage->data[offset+0] != 0 &&
+                                    (unsigned char)g.enemyTex.backImage->data[offset+1] != 0 &&
+                                    (unsigned char)g.enemyTex.backImage->data[offset+2] != 0);
+                    }
+            }
+    glGenTextures(1, &g.enemyTex.backTexture);
     glBindTexture(GL_TEXTURE_2D, g.enemyTex.backTexture);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-    glTexImage2D(GL_TEXTURE_2D, 0, 3, w, h, 0,
-            GL_RGB, GL_UNSIGNED_BYTE, g.enemyTex.backImage->data);
-    g.enemyTex.xc[0] = 0.0;
-    g.enemyTex.xc[1] = 1.0;
-    g.enemyTex.yc[0] = 0.0;
-    g.enemyTex.yc[1] = 1.0;
+    glTexImage2D(GL_TEXTURE_2D, 0, 4, w, h, 0,
+            GL_RGBA, GL_UNSIGNED_BYTE, data1);
+    delete [] data1;
+
+
+    g.weaponTex.backImage = &img[6];
+    //create opengl texture elements
+    
+    w = g.weaponTex.backImage->width;
+    h = g.weaponTex.backImage->height;
+
+
+    glEnable(GL_TEXTURE_2D);
+    unsigned char *data2 = new unsigned char [g.weaponTex.backImage->width * g.weaponTex.backImage->height * 4];
+            for (int i=0; i<g.weaponTex.backImage->height; i++) {
+                    for (int j=0; j<g.weaponTex.backImage->width; j++) {
+                            int offset  = i*g.weaponTex.backImage->width*3 + j*3;
+                            int offset2 = i*g.weaponTex.backImage->width*4 + j*4;
+                            data2[offset2+0] = g.weaponTex.backImage->data[offset+0];
+                            data2[offset2+1] = g.weaponTex.backImage->data[offset+1];
+                            data2[offset2+2] = g.weaponTex.backImage->data[offset+2];
+                            data2[offset2+3] =
+                                    ((unsigned char)g.weaponTex.backImage->data[offset+0] != 0 &&
+                                    (unsigned char)g.weaponTex.backImage->data[offset+1] != 0 &&
+                                    (unsigned char)g.weaponTex.backImage->data[offset+2] != 0);
+                    }
+            }
+    glGenTextures(1, &g.weaponTex.backTexture);
+    glBindTexture(GL_TEXTURE_2D, g.weaponTex.backTexture);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, 4, w, h, 0,
+            GL_RGBA, GL_UNSIGNED_BYTE, data2);
+    delete [] data2;
+    // g.weaponTex.xc[0] = 0.0;
+    // g.weaponTex.xc[1] = 1.0;
+    // g.weaponTex.yc[0] = 0.0;
+    // g.weaponTex.yc[1] = 1.0;
+
 
 
 }
@@ -876,6 +990,9 @@ class Enemy
 
 		float scale = 0.4f;
 		glPushMatrix();
+        glEnable(GL_ALPHA_TEST);
+        glAlphaFunc(GL_GREATER,0.0f);
+        glColor4ub(255,255,255,255);
 
 		Vec playerDir;
 
@@ -894,11 +1011,11 @@ class Enemy
 		glBindTexture(GL_TEXTURE_2D, g.enemyTex.backTexture);
 		glBegin(GL_QUADS);
 		//back side
-		glNormal3f( 0.0f, 0.0f, -1.0f);
-		glVertex3f(-1.0f , 1.0f, 0.0f);
-		glVertex3f( 1.0f , 1.0f, 0.0f);
-		glVertex3f( 1.0f ,-1.0f, 0.0f);
-		glVertex3f(-1.0f ,-1.0f, 0.0f);
+		// glNormal3f( 0.0f, 0.0f, -1.0f);
+		// glVertex3f(-1.0f , 1.0f, 0.0f);
+		// glVertex3f( 1.0f , 1.0f, 0.0f);
+		// glVertex3f( 1.0f ,-1.0f, 0.0f);
+		// glVertex3f(-1.0f ,-1.0f, 0.0f);
 		//front
 		glNormal3f( 0.0f, 0.0f, 1.0f);
 		glColor3f(1.0f,1.0f,1.0f);
@@ -926,6 +1043,8 @@ class Enemy
 
 
 		glEnd();
+        glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_ALPHA_TEST);   
 		glPopMatrix();
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
@@ -981,6 +1100,7 @@ void createTile(int x, int y, int z, bool n, bool e, bool s, bool w)
 	glPushMatrix();
     
 	//glLoadIdentity();
+    
 	glTranslatef(x+1.5f,y-1.0f,z-5.0f);
 	glRotatef(-90.0f,1.0f,0.0f,0.0f);
 	glColor3f(1.0f,0.5f,0.5f);
@@ -1013,6 +1133,49 @@ void createTile(int x, int y, int z, bool n, bool e, bool s, bool w)
 	//bind(0)    
 	glEnd();
 	glPopMatrix();
+
+
+//ceiling
+glPushMatrix();
+    
+	//glLoadIdentity();
+    
+	glTranslatef(x+1.5f,y+1.0f,z-5.0f);
+	glRotatef(90.0f,1.0f,0.0f,0.0f);
+	glColor3f(1.0f,0.5f,0.5f);
+	glBindTexture(GL_TEXTURE_2D, g.ceilingTex.backTexture);
+	glBegin(GL_QUADS);
+	//back side
+	glNormal3f( 0.0f, 0.0f, -1.0f);
+	glVertex3f(-1.0f, 1.0f, 0.0f);
+	glVertex3f( 1.0f, 1.0f, 0.0f);
+	glVertex3f( 1.0f,-1.0f, 0.0f);
+	glVertex3f(-1.0f,-1.0f, 0.0f);
+	//front
+	////bind()
+	glNormal3f( 0.0f, 0.0f, 1.0f);
+	glColor3f(1.0f,1.0f,1.0f);
+
+
+	glTexCoord2f(0.0f, 0.0f);
+	glVertex3f(-1.0f, 1.0f, 0.01f);
+
+	glTexCoord2f(1.0f, 0.0f);
+	glVertex3f( 1.0f, 1.0f, 0.01f);
+
+	glTexCoord2f(1.0f, 1.0f);
+	glVertex3f( 1.0f,-1.0f, 0.01f);
+
+	glTexCoord2f(0.0f, 1.0f);
+	glVertex3f(-1.0f,-1.0f, 0.01f);
+
+	//bind(0)    
+	glEnd();
+	glPopMatrix();
+
+//
+
+
 
 	//North wall
 	if(n)
@@ -1255,12 +1418,6 @@ void TypeDebug()
 	  //  cout << debugEnemy[i]->word << endl;
 	    debugEnemy[i]->update();
 	    debugEnemy[i]->draw();
-
-
-
-
-
-
 	}
 
 	drawMap();
@@ -1279,7 +1436,42 @@ void TypeDebug()
 	r.left = 0;
 	r.center = 0;
 	ggprint8b(&r, 16, 0x00990000, "%s",g.textbox.c_str());
+
+    //glPushMatrix();
+    glColor3ub(255,255,255);
+    //glTranslatef(x+1.5f,y+1.0f,z-5.0f);
+	//glRotatef(90.0f,1.0f,0.0f,0.0f);
+
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_GREATER,0.0f);
+    glColor4ub(255,255,255,255);
+    glBindTexture(GL_TEXTURE_2D, g.weaponTex.backTexture);
+	glBegin(GL_QUADS);
+	glNormal3f( 0.0f, 0.0f, 1.0f);
+	
+    float w = g.xres /2;
+    float h = g.yres /2;
+
+	glTexCoord2f(0.0f, 0.0f);glVertex2f(0, h);
+	glTexCoord2f(1.0f, 0.0f);glVertex2f( w, h);
+	glTexCoord2f(1.0f, 1.0f);glVertex2f( w,0);
+	glTexCoord2f(0.0f, 1.0f);glVertex2f(0,0);
+	glEnd();
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_ALPHA_TEST);   
+    //glDisable(GL_BLEND);
+	//glPopMatrix();
+
+
 	glPopMatrix();
+
+
+
+    
+
+
+	
+
 
 
 	checkCameraTurn();
