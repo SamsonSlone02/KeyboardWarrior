@@ -43,48 +43,6 @@ class PlayerData
 
 stack<char> currentText;
 
-
-// class Image {
-//     public:
-//         int width, height;
-//         unsigned char *data;
-//         ~Image() { delete [] data; }
-//         Image(const char *fname) {
-//             if (fname[0] == '\0')
-//                 return;
-//             char name[40];
-//             strcpy(name, fname);
-//             int slen = strlen(name);
-//             name[slen-4] = '\0';
-//             char ppmname[80];
-//             sprintf(ppmname,"%s.ppm", name);
-//             char ts[100];
-//             sprintf(ts, "convert %s %s", fname, ppmname);
-//             system(ts);
-//             FILE *fpi = fopen(ppmname, "r");
-//             if (fpi) {
-//                 char line[200];
-//                 fgets(line, 200, fpi);
-//                 fgets(line, 200, fpi);
-//                 //skip comments and blank lines
-//                 while (line[0] == '#' || strlen(line) < 2)
-//                     fgets(line, 200, fpi);
-//                 sscanf(line, "%i %i", &width, &height);
-//                 fgets(line, 200, fpi);
-//                 //get pixel data
-//                 int n = width * height * 3;			
-//                 data = new unsigned char[n];			
-//                 for (int i=0; i<n; i++)
-//                     data[i] = fgetc(fpi);
-//                 fclose(fpi);
-//             } else {
-//                 printf("ERROR opening image: %s\n", ppmname);
-//                 exit(0);
-//             }
-//             unlink(ppmname);
-//         }
-// };
-
 class Image {
 public:
         int width, height, max;
@@ -529,15 +487,7 @@ void init_opengl(void)
     g.ceilingTex.yc[1] = 1.0;
 
 
-
-
-
-
-
-
-
-
-g.enemyTex.backImage = &enemies[0];
+    g.enemyTex.backImage = &enemies[0];
     //create opengl texture elements
     
     w = g.enemyTex.backImage->width;
@@ -738,7 +688,7 @@ int check_keys(XEvent *e)
     }
     else
     {
-        if(key >= 97 && key <= 122)
+        if(key >= 97 && key <= 122) // a-z
             currentText.push((char)key);
         if(key == 32)  //space
             currentText.push(' ');   
@@ -747,10 +697,10 @@ int check_keys(XEvent *e)
             g.typeMode = 0;
             cout << "no longer typing" << endl;
         }   
-        if(key == XK_BackSpace)
+        if(key == XK_BackSpace) //backspace
             if(!currentText.empty())
                 currentText.pop();
-        if(key == 48)
+        if(key == 48) //idek, i though this was backspace but i guess not
             if(!currentText.empty())
                 currentText.pop();
     }
@@ -958,27 +908,6 @@ class Enemy
         
         //front
 		glNormal3f( 0.0f, 0.0f, 1.0f);
-		
-
-		
-		//cout << input[i] << endl;
-		//cout << textureIndex << endl;
-		//cout << tx<< ",  " << ty << endl;
-
-
-
-		
-
-
-
-		/*
-		   glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, 1.0f, 0.01f);
-		   glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f, 1.0f, 0.01f);
-		   glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f,-1.0f, 0.01f);
-		   glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f,-1.0f, 0.01f);
-
-*/
-		//bind(0)    
 	    }
 	    glEnd();
 	    glPopMatrix();
@@ -990,61 +919,36 @@ class Enemy
 
 		float scale = 0.4f;
 		glPushMatrix();
-        glEnable(GL_ALPHA_TEST);
-        glAlphaFunc(GL_GREATER,0.0f);
-        glColor4ub(255,255,255,255);
+            glEnable(GL_ALPHA_TEST);
+            glAlphaFunc(GL_GREATER,0.0f);
+            
+           
+            
+            Vec playerDir;
+            playerDir[0] =   g.cameraPos[0] - pos[0]; 
+            playerDir[2] =  g.cameraPos[2] - pos[2];
+            float adj_angle = -(atan2(playerDir[2],playerDir[0]) * (180/PI));
+            int enemyRot = (((int)adj_angle + 360) % 360) + 90;
 
-		Vec playerDir;
+            glColor4ub(255,255,255,255);
+            glTranslatef(pos[0] ,(1 * scale)-1,pos[2]);
+            glRotatef((enemyRot),0.0f,1.0f,0.0f);
+            glScalef(scale,scale,scale);
+            glColor3f(1.0f,1.0f,1.0f);
+            glBindTexture(GL_TEXTURE_2D, g.enemyTex.backTexture);
+            
+            glBegin(GL_QUADS);
+                glNormal3f( 0.0f, 0.0f, 1.0f);
+                glColor3f(1.0f,1.0f,1.0f);
+                glColor3f(1.0f,1.0f,1.0f);
+                glTexCoord2f(0.0f, 0.0f);glVertex3f(-1.0f, 1.0f, 0.01f);
+                glTexCoord2f(1.0f, 0.0f);glVertex3f( 1.0f, 1.0f, 0.01f);
+                glTexCoord2f(1.0f, 1.0f);glVertex3f( 1.0f,-1.0f, 0.01f);
+                glTexCoord2f(0.0f, 1.0f);glVertex3f(-1.0f,-1.0f, 0.01f);
+            glEnd();
 
-		playerDir[0] =   g.cameraPos[0] - pos[0]; 
-		playerDir[2] =  g.cameraPos[2] - pos[2];
-
-		float adj_angle = -(atan2(playerDir[2],playerDir[0]) * (180/PI));
-		int enemyRot = (((int)adj_angle + 360) % 360) + 90;
-
-		
-		glTranslatef(pos[0] ,(1 * scale)-1,pos[2]);
-        glRotatef((enemyRot),0.0f,1.0f,0.0f);
-		glScalef(scale,scale,scale);
-
-		glColor3f(1.0f,0.5f,0.5f);
-		glBindTexture(GL_TEXTURE_2D, g.enemyTex.backTexture);
-		glBegin(GL_QUADS);
-		//back side
-		// glNormal3f( 0.0f, 0.0f, -1.0f);
-		// glVertex3f(-1.0f , 1.0f, 0.0f);
-		// glVertex3f( 1.0f , 1.0f, 0.0f);
-		// glVertex3f( 1.0f ,-1.0f, 0.0f);
-		// glVertex3f(-1.0f ,-1.0f, 0.0f);
-		//front
-		glNormal3f( 0.0f, 0.0f, 1.0f);
-		glColor3f(1.0f,1.0f,1.0f);
-
-
-		glColor3f(1.0f,1.0f,1.0f);
-
-		glTexCoord2f(0.0f, 0.0f);
-		glVertex3f(-1.0f, 1.0f, 0.01f);
-
-		glTexCoord2f(1.0f, 0.0f);
-		glVertex3f( 1.0f, 1.0f, 0.01f);
-
-		glTexCoord2f(1.0f, 1.0f);
-		glVertex3f( 1.0f,-1.0f, 0.01f);
-
-		glTexCoord2f(0.0f, 1.0f);
-		glVertex3f(-1.0f,-1.0f, 0.01f);
-
-
-		//	glTexCoord2f(tx1, ty2); glVertex3f(-1.0f, -1.0f, 0.01f);
-		//		glTexCoord2f(tx1, ty1); glVertex3f( -1.0f, 1.0f, 0.01f);
-		//		glTexCoord2f(tx2, ty1); glVertex3f( 1.0f ,1.0f, 0.01f);
-		//		glTexCoord2f(tx2, ty2); glVertex3f(1.0f,-1.0f, 0.01f);
-
-
-		glEnd();
-        glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable(GL_ALPHA_TEST);   
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glDisable(GL_ALPHA_TEST);   
 		glPopMatrix();
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
@@ -1085,6 +989,7 @@ class Enemy
 	}
 	bool checkMatch(string in_string)
 	{
+        
 		if(in_string == word)
 			return true;
 		else 
@@ -1096,246 +1001,108 @@ class Enemy
 
 void createTile(int x, int y, int z, bool n, bool e, bool s, bool w)
 {
+
+    const int width= 1;
+
 	//FLOOR
+    glColor3f(1.0f,1.0f,1.0f);
+
 	glPushMatrix();
-    
-	//glLoadIdentity();
-    
-	glTranslatef(x+1.5f,y-1.0f,z-5.0f);
-	glRotatef(-90.0f,1.0f,0.0f,0.0f);
-	glColor3f(1.0f,0.5f,0.5f);
-	glBindTexture(GL_TEXTURE_2D, g.carpetTex.backTexture);
-	glBegin(GL_QUADS);
-	//back side
-	glNormal3f( 0.0f, 0.0f, -1.0f);
-	glVertex3f(-1.0f, 1.0f, 0.0f);
-	glVertex3f( 1.0f, 1.0f, 0.0f);
-	glVertex3f( 1.0f,-1.0f, 0.0f);
-	glVertex3f(-1.0f,-1.0f, 0.0f);
-	//front
-	////bind()
-	glNormal3f( 0.0f, 0.0f, 1.0f);
-	glColor3f(1.0f,1.0f,1.0f);
-
-
-	glTexCoord2f(0.0f, 0.0f);
-	glVertex3f(-1.0f, 1.0f, 0.01f);
-
-	glTexCoord2f(1.0f, 0.0f);
-	glVertex3f( 1.0f, 1.0f, 0.01f);
-
-	glTexCoord2f(1.0f, 1.0f);
-	glVertex3f( 1.0f,-1.0f, 0.01f);
-
-	glTexCoord2f(0.0f, 1.0f);
-	glVertex3f(-1.0f,-1.0f, 0.01f);
-
-	//bind(0)    
-	glEnd();
+        glTranslatef(x,y-1.0f,z);
+        glRotatef(-90.0f,1.0f,0.0f,0.0f);
+        glColor3f(1.0f,1.0f,1.0f);
+        glBindTexture(GL_TEXTURE_2D, g.carpetTex.backTexture);
+        glBegin(GL_QUADS);
+            glNormal3f( 0.0f, 0.0f, 1.0f);
+            glTexCoord2f(0.0f, 0.0f);glVertex3f(-1.0f, 1.0f, 0.0f);
+            glTexCoord2f(1.0f, 0.0f);glVertex3f( 1.0f, 1.0f, 0.0f);
+            glTexCoord2f(1.0f, 1.0f);glVertex3f( 1.0f,-1.0f, 0.0f);
+            glTexCoord2f(0.0f, 1.0f);glVertex3f(-1.0f,-1.0f, 0.0f); 
+        glEnd();
 	glPopMatrix();
 
 
-//ceiling
-glPushMatrix();
-    
-	//glLoadIdentity();
-    
-	glTranslatef(x+1.5f,y+1.0f,z-5.0f);
-	glRotatef(90.0f,1.0f,0.0f,0.0f);
-	glColor3f(1.0f,0.5f,0.5f);
-	glBindTexture(GL_TEXTURE_2D, g.ceilingTex.backTexture);
-	glBegin(GL_QUADS);
-	//back side
-	glNormal3f( 0.0f, 0.0f, -1.0f);
-	glVertex3f(-1.0f, 1.0f, 0.0f);
-	glVertex3f( 1.0f, 1.0f, 0.0f);
-	glVertex3f( 1.0f,-1.0f, 0.0f);
-	glVertex3f(-1.0f,-1.0f, 0.0f);
-	//front
-	////bind()
-	glNormal3f( 0.0f, 0.0f, 1.0f);
-	glColor3f(1.0f,1.0f,1.0f);
-
-
-	glTexCoord2f(0.0f, 0.0f);
-	glVertex3f(-1.0f, 1.0f, 0.01f);
-
-	glTexCoord2f(1.0f, 0.0f);
-	glVertex3f( 1.0f, 1.0f, 0.01f);
-
-	glTexCoord2f(1.0f, 1.0f);
-	glVertex3f( 1.0f,-1.0f, 0.01f);
-
-	glTexCoord2f(0.0f, 1.0f);
-	glVertex3f(-1.0f,-1.0f, 0.01f);
-
-	//bind(0)    
-	glEnd();
+    //ceiling
+    glPushMatrix();
+        glTranslatef(x,y+1.0f,z);
+        glRotatef(90.0f,1.0f,0.0f,0.0f);
+        glColor3f(1.0f,1.0f,1.0f);
+        glBindTexture(GL_TEXTURE_2D, g.ceilingTex.backTexture);
+        glBegin(GL_QUADS);
+            glNormal3f( 0.0f, 0.0f, 1.0f);
+            glTexCoord2f(0.0f, 0.0f);glVertex3f(-1.0f, 1.0f, 0.0f);
+            glTexCoord2f(1.0f, 0.0f);glVertex3f( 1.0f, 1.0f, 0.0f);
+            glTexCoord2f(1.0f, 1.0f);glVertex3f( 1.0f,-1.0f, 0.0f);
+            glTexCoord2f(0.0f, 1.0f);glVertex3f(-1.0f,-1.0f, 0.0f);
+        glEnd();
 	glPopMatrix();
 
-//
-
-
-
-	//North wall
 	if(n)
 	{
+        //North wall
 		glPushMatrix();
-		//glLoadIdentity();
-		glTranslatef(x+1.5f,y+0.0f,z-4.0001f);
-		glRotatef(180.0f,0.0f,1.0f,0.0f);
-		glColor3f(1.0f,0.5f,0.5f);
-		glBindTexture(GL_TEXTURE_2D, g.tex.backTexture);
-		glBegin(GL_QUADS);
-		//back side
-		glNormal3f( 0.0f, 0.0f, -1.0f);
-		glVertex3f(-1.0f, 1.0f, 0.0f);
-		glVertex3f( 1.0f, 1.0f, 0.0f);
-		glVertex3f( 1.0f,-1.0f, 0.0f);
-		glVertex3f(-1.0f,-1.0f, 0.0f);
-
-		//front
-		////bind()
-		glNormal3f( 0.0f, 0.0f, 1.0f);
-
-
-		glColor3f(1.0f,1.0f,1.0f);
-
-
-		glTexCoord2f(0.0f, 0.0f);
-		glVertex3f(-1.0f, 1.0f, 0.01f);
-
-		glTexCoord2f(1.0f, 0.0f);
-		glVertex3f( 1.0f, 1.0f, 0.01f);
-
-		glTexCoord2f(1.0f, 1.0f);
-		glVertex3f( 1.0f,-1.0f, 0.01f);
-
-		glTexCoord2f(0.0f, 1.0f);
-		glVertex3f(-1.0f,-1.0f, 0.01f);
-
-		//bind(0)    
-		glEnd();
+            glTranslatef(x,y+0.0f,z+width);
+            glRotatef(180.0f,0.0f,1.0f,0.0f);
+            glColor3f(1.0f,1.0f,1.0f);
+            glBindTexture(GL_TEXTURE_2D, g.tex.backTexture);
+            glBegin(GL_QUADS);
+                glNormal3f( 0.0f, 0.0f, 1.0f);
+                glTexCoord2f(0.0f, 0.0f);glVertex3f(-1.0f, 1.0f, 0.0f);
+                glTexCoord2f(1.0f, 0.0f);glVertex3f( 1.0f, 1.0f, 0.0f);
+                glTexCoord2f(1.0f, 1.0f);glVertex3f( 1.0f,-1.0f, 0.0f);
+                glTexCoord2f(0.0f, 1.0f);glVertex3f(-1.0f,-1.0f, 0.0f);
+            glEnd();
 		glPopMatrix();
-
 	}
 	if(w)
 	{
-
-		//West WALL
-		//glLoadIdentity();
+    	//West WALL
 		glPushMatrix();
-		glTranslatef(x+0.5001f,y+0.0f,z-5.0f);
-		glRotatef(90.0f,0.0f,1.0f,0.0f);
-		glColor3f(0.0f,0.0f,1.0f);
-		glBindTexture(GL_TEXTURE_2D, g.tex.backTexture);
-		glBegin(GL_QUADS);
-
-		//back side
-		glNormal3f( 0.0f, 0.0f, -1.0f);
-		glVertex3f(-1.0f, 1.0f, 0.0f);
-		glVertex3f( 1.0f, 1.0f, 0.0f);
-		glVertex3f( 1.0f,-1.0f, 0.0f);
-		glVertex3f(-1.0f,-1.0f, 0.0f);
-
-		//front
-		glNormal3f( 0.0f, 0.0f, 1.0f);
-		glColor3f(1.0f,1.0f,1.0f);
-
-		glTexCoord2f(0.0f, 0.0f);
-		glVertex3f(-1.0f, 1.0f, 0.01f);
-
-		glTexCoord2f(1.0f, 0.0f);
-		glVertex3f( 1.0f, 1.0f, 0.01f);
-
-		glTexCoord2f(1.0f, 1.0f);
-		glVertex3f( 1.0f,-1.0f, 0.01f);
-
-		glTexCoord2f(0.0f, 1.0f);
-		glVertex3f(-1.0f,-1.0f, 0.01f);
-
-		glEnd();
+            glTranslatef(x-width,y+0.0f,z);
+            glRotatef(90.0f,0.0f,1.0f,0.0f);
+            glColor3f(1.0f,1.0f,1.0f);
+            glBindTexture(GL_TEXTURE_2D, g.tex.backTexture);
+            glBegin(GL_QUADS);
+                glNormal3f( 0.0f, 0.0f, 1.0f);
+                glTexCoord2f(0.0f, 0.0f);glVertex3f(-1.0f, 1.0f, 0.0f);
+                glTexCoord2f(1.0f, 0.0f);glVertex3f( 1.0f, 1.0f, 0.0f);
+                glTexCoord2f(1.0f, 1.0f);glVertex3f( 1.0f,-1.0f, 0.0f);
+                glTexCoord2f(0.0f, 1.0f);glVertex3f(-1.0f,-1.0f, 0.0f);
+            glEnd();
 		glPopMatrix();
 	}
 	if(e)
 	{
-
 		//East WALL
 		glPushMatrix();
-		//glLoadIdentity();
-		glTranslatef(x+2.49999f,y+0.0f,z -5.0f);
-		glRotatef(-90.0f,0.0f,1.0f,0.0f);
-		glColor3f(1.0f,1.0f,0.0f);
-		glBindTexture(GL_TEXTURE_2D, g.tex.backTexture);
-		glBegin(GL_QUADS);
-		//back side
-		glNormal3f( 0.0f, 0.0f, -1.0f);
-		glVertex3f(-1.0f, 1.0f, 0.0f);
-		glVertex3f( 1.0f, 1.0f, 0.0f);
-		glVertex3f( 1.0f,-1.0f, 0.0f);
-		glVertex3f(-1.0f,-1.0f, 0.0f);
-
-		//front
-		////bind()
-		glNormal3f( 0.0f, 0.0f, 1.0f);
-		//
-
-		glColor3f(1.0f,1.0f,1.0f);
-
-		glTexCoord2f(0.0f, 0.0f);
-		glVertex3f(-1.0f, 1.0f, 0.01f);
-
-		glTexCoord2f(1.0f, 0.0f);
-		glVertex3f( 1.0f, 1.0f, 0.01f);
-
-		glTexCoord2f(1.0f, 1.0f);
-		glVertex3f( 1.0f,-1.0f, 0.01f);
-
-		glTexCoord2f(0.0f, 1.0f);
-		glVertex3f(-1.0f,-1.0f, 0.01f);
-
-		//bind(0)    
-		glEnd();
+            glTranslatef(x+width,y+0.0f,z);
+            glRotatef(-90.0f,0.0f,1.0f,0.0f);
+            glColor3f(1.0f,1.0f,1.0f);
+            glBindTexture(GL_TEXTURE_2D, g.tex.backTexture);
+            glBegin(GL_QUADS);
+                glNormal3f( 0.0f, 0.0f, 1.0f);
+                glTexCoord2f(0.0f, 0.0f);glVertex3f(-1.0f, 1.0f, 0.0f);
+                glTexCoord2f(1.0f, 0.0f);glVertex3f( 1.0f, 1.0f, 0.0f);
+                glTexCoord2f(1.0f, 1.0f);glVertex3f( 1.0f,-1.0f, 0.0f);
+                glTexCoord2f(0.0f, 1.0f);glVertex3f(-1.0f,-1.0f, 0.0f);  
+            glEnd();
 		glPopMatrix();
 	}
 	if(s)
 	{
-
 		glPushMatrix();
-		//glLoadIdentity();
-		glTranslatef(x+1.5f,y+0.0f,z-5.9999f);
-		glRotatef(180.0f,0.0f,0.0f,0.0f);
-		glColor3f(0.0f,1.0f,0.0f);
-		glBindTexture(GL_TEXTURE_2D, g.tex.backTexture);
-		glBegin(GL_QUADS);
-		//back side
-		glNormal3f( 0.0f, 0.0f, -1.0f);
-		glVertex3f(-1.0f, 1.0f, 0.0f);
-		glVertex3f( 1.0f, 1.0f, 0.0f);
-		glVertex3f( 1.0f,-1.0f, 0.0f);
-		glVertex3f(-1.0f,-1.0f, 0.0f);
-
-		//front
-		////bind()
-		glNormal3f( 0.0f, 0.0f, 1.0f);
-
-
-		glColor3f(1.0f,1.0f,1.0f);
-
-		glTexCoord2f(0.0f, 0.0f);
-		glVertex3f(-1.0f, 1.0f, 0.01f);
-
-		glTexCoord2f(1.0f, 0.0f);
-		glVertex3f( 1.0f, 1.0f, 0.01f);
-
-		glTexCoord2f(1.0f, 1.0f);
-		glVertex3f( 1.0f,-1.0f, 0.01f);
-
-		glTexCoord2f(0.0f, 1.0f);
-		glVertex3f(-1.0f,-1.0f, 0.01f);
-
-		//bind(0)    
-		glEnd();
+            glTranslatef(x,y+0.0f,z-width);
+            glRotatef(180.0f,0.0f,0.0f,0.0f);
+            glColor3f(1.0f,1.0f,1.0f);
+            glBindTexture(GL_TEXTURE_2D, g.tex.backTexture);
+            glBegin(GL_QUADS);
+                glNormal3f( 0.0f, 0.0f, 1.0f);
+                glColor3f(1.0f,1.0f,1.0f);
+                glTexCoord2f(0.0f, 0.0f);glVertex3f(-1.0f, 1.0f, 0.0f);
+                glTexCoord2f(1.0f, 0.0f);glVertex3f( 1.0f, 1.0f, 0.0f);
+                glTexCoord2f(1.0f, 1.0f);glVertex3f( 1.0f,-1.0f, 0.0f);
+                glTexCoord2f(0.0f, 1.0f);glVertex3f(-1.0f,-1.0f, 0.0f);
+            glEnd();
 		glPopMatrix();
 	}
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -1374,11 +1141,12 @@ void TypeDebug()
 		{
 			debugEnemy[i] = new Enemy();
 		}
+        g.targetCameraYaw = 'n';
 	}
 	firstRun = 0;
 	static string rWord = g.myDictionary.getRandomWord();
 	rWord = g.myDictionary.getRandomWord();
-	g.targetCameraYaw = ' ';
+	//g.targetCameraYaw = ' ';
 	
     
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1461,22 +1229,15 @@ void TypeDebug()
     glDisable(GL_ALPHA_TEST);   
     //glDisable(GL_BLEND);
 	//glPopMatrix();
-
-
-	glPopMatrix();
-
-
-
+    glPopMatrix();
     
-
-
-	
-
-
-
-	checkCameraTurn();
+    //checkCameraTurn();
+    if(!g.cameraBusy)
+    {        
+        char dir[4] = {'n','s','e','w'};
+        g.targetCameraYaw = dir[rand() % 4];
+    }
 }
-
 void DrawGame()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1504,6 +1265,8 @@ void DrawGame()
     glBindTexture(GL_TEXTURE_2D, 0);
     g.rtri  += 4.0f;
 
+
+    createTile(0,0,0,true,true,true,true);
     checkCameraTurn();
     /*
        if(!g.cameraBusy)
