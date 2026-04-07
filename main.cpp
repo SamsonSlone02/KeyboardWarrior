@@ -14,7 +14,7 @@
 #include <time.h>
 #include <fstream>
 #include <iostream>
-#include<algorithm>
+#include <algorithm>
 #include <string>
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
@@ -33,6 +33,31 @@ typedef Flt Vec[3];
 void vecMake(Flt a, Flt b, Flt c, Vec v);
 #define rnd() (Flt)rand() / (Flt)RAND_MAX
 #define PI 3.14159265358979323846264338327950
+
+//setup timers -------------------------------------------------
+struct timespec res;
+struct timespec timeStart, timeCurrent;
+struct timespec timePause;
+double physicsCountdown=0.0;
+double renderCountdown=0.0;
+double timeSpan=0.0;
+double statsCountdown=0.0;
+const double physicsRate = 1.0 / 30.0;
+const double renderRate = 1.0 / 60.0;
+const double maxFrameTime = 0.25;
+const double oobillion = 1.0 / 1e9;
+int physicsFrames = 0;
+int renderFrames = 0;
+int displayedUPS = 0;
+int displayedFPS = 0;
+double timeDiff(struct timespec *start, struct timespec *end) {
+	return (double)(end->tv_sec - start->tv_sec ) +
+			(double)(end->tv_nsec - start->tv_nsec) * oobillion;
+}
+void timeCopy(struct timespec *dest, struct timespec *source) {
+	memcpy(dest, source, sizeof(struct timespec));
+}
+//end of timers -----------------------------------------------
 
 class PlayerData
 {
@@ -270,6 +295,7 @@ int main(void)
     //Do this to allow fonts
     glEnable(GL_TEXTURE_2D);
     initialize_fonts();
+    clock_gettime(CLOCK_MONOTONIC, &timeStart);
     int done = 0;
     while (!done) {
         while (x11.getXPending()) {
@@ -278,9 +304,48 @@ int main(void)
             check_mouse(&e);
             done = check_keys(&e);
         }
-        physics();
-        render();
-        x11.swapBuffers();
+        // Run physics and rendering on fixed timers so monitor refresh
+        // does not change game speed.
+		clock_gettime(CLOCK_MONOTONIC, &timeCurrent);
+        timeSpan = timeDiff(&timeStart, &timeCurrent);
+        timeCopy(&timeStart, &timeCurrent);
+        if (timeSpan < 0.0)
+            timeSpan = 0.0;
+        if (timeSpan > maxFrameTime)
+            timeSpan = maxFrameTime;
+        physicsCountdown += timeSpan;
+        renderCountdown += timeSpan;
+        statsCountdown += timeSpan;
+
+		while(physicsCountdown >= physicsRate) {
+            physics();
+            ++physicsFrames;
+            physicsCountdown -= physicsRate;
+		}
+        if (renderCountdown >= renderRate) {
+            render();
+            x11.swapBuffers();
+            ++renderFrames;
+            while (renderCountdown >= renderRate)
+                renderCountdown -= renderRate;
+        } else {
+            double sleepTime = renderRate - renderCountdown;
+            if (sleepTime > 0.0) {
+                struct timespec sleepRequest;
+                sleepRequest.tv_sec = (time_t)sleepTime;
+                sleepRequest.tv_nsec =
+                    (long)((sleepTime - (double)sleepRequest.tv_sec) * 1e9);
+                nanosleep(&sleepRequest, NULL);
+            }
+        }
+        if (statsCountdown >= 1.0) {
+            displayedUPS = physicsFrames;
+            displayedFPS = renderFrames;
+            physicsFrames = 0;
+            renderFrames = 0;
+            while (statsCountdown >= 1.0)
+                statsCountdown -= 1.0;
+        }
     }
     cleanup_fonts();
     return 0;
@@ -1561,6 +1626,6 @@ void render(void)
     ggprint8b(&r, 16, 0x008877aa, "O,P - TURN");
     ggprint8b(&r, 16, 0x008877aa, "U,I - UP,DOWN");
     ggprint8b(&r, 16, 0x008877aa, "J,K - TILT UP,TILT DOWN");
+    ggprint8b(&r, 16, 0x00ffff00, "FPS: %d", displayedFPS);
+//    ggprint8b(&r, 16, 0x00ddeeff, "UPS: %d", displayedUPS);
 }
-
-
