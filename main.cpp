@@ -142,6 +142,11 @@ class Global {
         Vec cameraFront;
 
 
+        int mazeHeight;
+        int mazeWidth;
+
+        Vec playerTileLocation;
+        
 
         char targetCameraYaw;
         int cameraTurnSpeed;
@@ -164,33 +169,111 @@ class Global {
             pitch = 0.0f;
             typeMode = 0;
             vecMake(0.0f,1.0f,0.0f,cameraUp);
-            vecMake(-1.0f,0.0f,-1.0f,cameraPos);
+            vecMake(0.0f,0.0f,0.0f,cameraPos);
             vecMake(0.0f,0.0f,-1.0f,cameraFront);
             srand(time(NULL));
+            
             xres = 640;
             yres = 480;
+
+            mazeHeight = 30;
+            mazeWidth = 30;
+            
             GLfloat la[]  = {  0.0f, 0.0f, 0.0f, 1.0f };
             GLfloat ld[]  = {  1.0f, 1.0f, 1.0f, 1.0f };
             GLfloat ls[] = {  0.5f, 0.5f, 0.5f, 1.0f };
             GLfloat lp[] = { 100.0f, 60.0f, -140.0f, 1.0f };
+            
             lp[0] = rnd() * 200.0 - 100.0;
             lp[1] = rnd() * 100.0 + 20.0;
             lp[2] = rnd() * 300.0 - 150.0;
+            
             memcpy(lightAmbient, la, sizeof(GLfloat)*4);
             memcpy(lightDiffuse, ld, sizeof(GLfloat)*4);
             memcpy(lightSpecular, ls, sizeof(GLfloat)*4);
             memcpy(lightPosition, lp, sizeof(GLfloat)*4);
+            
             lesson_num=1;
             rtri = 0.0f;
             rquad = 0.0f;
             Flt gcubeRot[3]={2.0,0.0,0.0};
             Flt gcubeAng[3]={0.0,0.0,0.0};
+            
             memcpy(cubeRot, gcubeRot, sizeof(Flt)*3);
             memcpy(cubeAng, gcubeAng, sizeof(Flt)*3);
 
             cx = 10;
             cy = 20;
             cz = 10;
+
+            //variables used to make sure that we do not exceed the bounds of the maze <0 or  >mazeWidth;
+            int tempX = 0;
+            int tempY = 0;
+            int rng = rand() % 4;
+            
+            //initialize maze steps
+            for(int i = 0; i < 500;)
+            {
+                cout << rng;
+                //north
+                if(rng == 0)
+                {
+                    if(tempY >= mazeWidth)
+                    {
+                        rng = 1;
+                        continue;
+                    }
+                    steps[i] = 'n';
+                    tempY++;
+                    i++;
+                }
+                //south
+                if(rng == 1)
+                {
+                    if(tempY <= 0)
+                    {
+                        rng = 0;
+                        continue;
+                    }
+                    steps[i] = 's';
+                        tempY--;
+                    i++;
+                }
+                //east
+                if(rng == 2)
+                {
+                    if(tempX >= mazeHeight)
+                    {
+                        rng = 3;
+                        continue;
+                    }
+                    steps[i] = 'e';
+                    tempX++;
+                    i++;
+                }
+                //west
+                if(rng == 3)
+                {
+                    if(tempX <= 0)
+                    {
+                        rng = 2;
+                        continue;
+                    }
+                    steps[i] = 'w';
+                    tempX--;
+                    i++;
+                }
+    
+            
+                rng = rand() % 4;
+                
+            } 
+            for(int i = 0; i < 500;i++)
+            {
+            cout << steps[i] << ", ";
+            }
+            cout << endl;
+
         }
 } g;
 
@@ -1175,12 +1258,12 @@ void createTile(int x, int y, int z, bool n, bool e, bool s, bool w)
 
 void drawMap()
 {
-	int height = 30;
-	int width = 30;
+	int height = g.mazeHeight;
+	int width = g.mazeWidth;
 
 	for(int i =-height; i < height;i++)
 	{
-		for(int j = -width; j < width;j++)
+		for(int j = t -width; j < width;j++)
 		{
             if(j % 2 != 0 && i % 2 == 0)
 			    createTile(i * 2,0,j * 2,false,true,false,true);
@@ -1247,7 +1330,7 @@ void TypeDebug()
 		stack<char> emptyText;
 		currentText =  emptyText;
 	    }
-	    cout << g.textbox << endl;
+	    //cout << g.textbox << endl;
 	  //  cout << debugEnemy[i]->word << endl;
 	    debugEnemy[i]->update();
 	    debugEnemy[i]->draw();
@@ -1296,12 +1379,37 @@ void TypeDebug()
 	//glPopMatrix();
     glPopMatrix();
     
-    //checkCameraTurn();
+    checkCameraTurn();
+    
+    /*
     if(!g.cameraBusy)
     {        
         char dir[4] = {'n','s','e','w'};
         g.targetCameraYaw = dir[rand() % 4];
     }
+*/
+
+    if(!g.cameraBusy)
+    {
+        static float distance = 0;
+        const float err =0.1f;
+        Vec cfuTemp; //camera front updated temp
+        vecScale(g.cameraFront,g.moveSpeed,cfuTemp);
+        vecAdd(g.cameraPos,cfuTemp,g.cameraPos);
+        char cur = g.steps[g.currentStep];
+        distance+=g.moveSpeed;
+        if(distance <= 4.0f+err && distance >=4.0f-err)
+        {
+            g.targetCameraYaw = cur;
+            printf("turning %c",g.targetCameraYaw);
+            g.currentStep++;
+            distance=0;
+        }
+        fflush(stdout);
+    }
+
+
+
 }
 void DrawGame()
 {
@@ -1601,9 +1709,9 @@ void render(void)
     vecAdd(g.cameraPos,g.cameraFront,added);
     gluLookAt((double)g.cameraPos[0],(double)g.cameraPos[1],(double)g.cameraPos[2],  (double)added[0],(double)added[1],(double)added[2],(double)g.cameraUp[0],(double)g.cameraUp[1],(double)g.cameraUp[2]);
     switch (g.lesson_num) {
-	case 0:break;              
-	case 1: TypeDebug(); break;
-	case 2: DrawGame(); break;
+        case 0:break;              
+        case 1: TypeDebug(); break;
+        case 2: DrawGame(); break;
 
     }
     //Set 2D mode (no perspective)
@@ -1627,5 +1735,5 @@ void render(void)
     ggprint8b(&r, 16, 0x008877aa, "U,I - UP,DOWN");
     ggprint8b(&r, 16, 0x008877aa, "J,K - TILT UP,TILT DOWN");
     ggprint8b(&r, 16, 0x00ffff00, "FPS: %d", displayedFPS);
-//    ggprint8b(&r, 16, 0x00ddeeff, "UPS: %d", displayedUPS);
+    //    ggprint8b(&r, 16, 0x00ddeeff, "UPS: %d", displayedUPS);
 }
