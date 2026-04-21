@@ -23,6 +23,8 @@
 #include <GL/glu.h>
 #include "fonts.h"
 #include <stack>
+#include <vector>
+#include <filesystem>
 
 
 #include "dictionary.h"
@@ -66,6 +68,7 @@ class PlayerData
 
 
 
+
 stack<char> currentText;
 
 class Image {
@@ -102,9 +105,65 @@ public:
                 if (!isPPM)
                         unlink(newfile);
         }
+
+        Image(const std::string& fname) {
+                const char* cstr = fname.c_str();
+                bool isPPM = true;
+                char str[1200];
+                char newfile[200];
+                ifstream fin;
+                char *p = strstr((char *)cstr, ".ppm");
+                if (!p) {
+                        //not a ppm file
+                        isPPM = false;
+                        strcpy(newfile, cstr);
+                        newfile[strlen(newfile)-4] = '\0';
+                        strcat(newfile, ".ppm");
+                        sprintf(str, "convert %s %s", cstr, newfile);
+                        system(str);
+                        fin.open(newfile);
+                } else {
+                        fin.open(cstr);
+                }
+                char p6[10];
+                fin >> p6;
+                fin >> width >> height;
+                fin >> max;
+                data = new char [width * height * 3];
+                fin.read(data, 1);
+                fin.read(data, width * height * 3);
+                fin.close();
+                if (!isPPM)
+                        unlink(newfile);
+        }
+
 }; Image img[7] = {"wall.png","carpet.png","sky4.jpg","ascii.png","selfie_cat.png","ceiling.png","weapon.png"};
-Image enemies[] = {"enemy.png", "enemy2.png"};
-const int enemyTextureCount = sizeof(enemies) / sizeof(enemies[0]);
+//Image enemies[] = {"enemy.png", "enemy2.png"};
+//const int enemyTextureCount = sizeof(enemies) / sizeof(enemies[0]);
+
+std::vector<Image> get_files_to_array(const std::string& path) {
+    std::vector<Image> file_list;
+
+    try {
+        if (std::filesystem::exists(path) && std::filesystem::is_directory(path)) {
+            for (const auto& entry : std::filesystem::directory_iterator(path)) {
+                // filter for files only, skipping sub-directories
+                if (std::filesystem::is_regular_file(entry)) {
+                    file_list.push_back(entry.path().string());
+                }
+            }
+        }
+    } catch (const std::filesystem::filesystem_error& err) {
+        std::cerr << "Filesystem error: " << err.what() << std::endl;
+    }
+
+    return file_list;
+}
+
+std::vector<Image> enemies = get_files_to_array("./enemies");
+
+
+
 class Texture {
     public:
         Image *backImage;
@@ -129,7 +188,7 @@ class Global {
         Texture carpetTex;
         Texture skyTex;
         Texture asciiTex;
-        Texture enemyTex[enemyTextureCount];
+        Texture *enemyTex = new Texture[enemies.size()];
         Texture weaponTex;
         Texture ceilingTex;
         int cx;
@@ -192,6 +251,9 @@ class Global {
             cx = 10;
             cy = 20;
             cz = 10;
+        }
+        ~Global() {
+            delete[] enemyTex;
         }
 } g;
 
@@ -552,7 +614,7 @@ void init_opengl(void)
     g.ceilingTex.yc[0] = 0.0;
     g.ceilingTex.yc[1] = 1.0;
 
-for (int num = 0; num < enemyTextureCount; num++) {
+for (size_t num = 0; num < enemies.size(); num++) {
     g.enemyTex[num].backImage = &enemies[num];
     //create opengl texture elements
     w = g.enemyTex[num].backImage->width;
@@ -848,7 +910,7 @@ class Enemy
             pos[1] = 0;
             pos[2] = rand() % 500;
             pos[2] = float(pos[2]) / 100;
-            textureIndex = rand() % enemyTextureCount;
+            textureIndex = rand() % enemies.size();
           
           //pos[0] = 0;
           //pos[1] = 0;
