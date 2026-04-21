@@ -1258,22 +1258,21 @@ void createTile(int x, int y, int z, bool n, bool e, bool s, bool w)
 
 void drawMap()
 {
-	int height = g.mazeHeight;
-	int width = g.mazeWidth;
+    int height = g.mazeHeight;
+    int width = g.mazeWidth;
 
-	for(int i =-height; i < height;i++)
-	{
-		for(int j = t -width; j < width;j++)
-		{
-            if(j % 2 != 0 && i % 2 == 0)
-			    createTile(i * 2,0,j * 2,false,true,false,true);
-            if(j % 2 == 0 && i % 2 !=0)
-                createTile(i * 2,0,j * 2,true,false,true,false);
-            else 
-                createTile(i * 2,0,j * 2,false,false,false,false);
-		}   
-	}
-
+    for (int i = -height; i < height; i++)
+    {
+        for (int j = -width; j < width; j++)
+        {
+            if (j % 2 != 0 && i % 2 == 0)
+                createTile(i * 2, 0, j * 2, false, true, false, true);
+            else if (j % 2 == 0 && i % 2 != 0)
+                createTile(i * 2, 0, j * 2, true, false, true, false);
+            else
+                createTile(i * 2, 0, j * 2, false, false, false, false);
+        }
+    }
 }
 
 const int nEnemies = 4;
