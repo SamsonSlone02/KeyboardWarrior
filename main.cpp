@@ -103,7 +103,8 @@ public:
                         unlink(newfile);
         }
 }; Image img[7] = {"wall.png","carpet.png","sky4.jpg","ascii.png","selfie_cat.png","ceiling.png","weapon.png"};
-Image enemies[1] = {"enemy.png"};
+Image enemies[] = {"enemy.png", "enemy2.png"};
+const int enemyTextureCount = sizeof(enemies) / sizeof(enemies[0]);
 class Texture {
     public:
         Image *backImage;
@@ -128,7 +129,7 @@ class Global {
         Texture carpetTex;
         Texture skyTex;
         Texture asciiTex;
-        Texture enemyTex;
+        Texture enemyTex[enemyTextureCount];
         Texture weaponTex;
         Texture ceilingTex;
         int cx;
@@ -551,36 +552,36 @@ void init_opengl(void)
     g.ceilingTex.yc[0] = 0.0;
     g.ceilingTex.yc[1] = 1.0;
 
-
-    g.enemyTex.backImage = &enemies[0];
+for (int num = 0; num < enemyTextureCount; num++) {
+    g.enemyTex[num].backImage = &enemies[num];
     //create opengl texture elements
-    
-    w = g.enemyTex.backImage->width;
-    h = g.enemyTex.backImage->height;
+    w = g.enemyTex[num].backImage->width;
+    h = g.enemyTex[num].backImage->height;
 
 
     glEnable(GL_TEXTURE_2D);
-    unsigned char *data1 = new unsigned char [g.enemyTex.backImage->width * g.enemyTex.backImage->height * 4];
-            for (int i=0; i<g.enemyTex.backImage->height; i++) {
-                    for (int j=0; j<g.enemyTex.backImage->width; j++) {
-                            int offset  = i*g.enemyTex.backImage->width*3 + j*3;
-                            int offset2 = i*g.enemyTex.backImage->width*4 + j*4;
-                            data1[offset2+0] = g.enemyTex.backImage->data[offset+0];
-                            data1[offset2+1] = g.enemyTex.backImage->data[offset+1];
-                            data1[offset2+2] = g.enemyTex.backImage->data[offset+2];
+    unsigned char *data1 = new unsigned char [g.enemyTex[num].backImage->width * g.enemyTex[num].backImage->height * 4];
+            for (int i=0; i<g.enemyTex[num].backImage->height; i++) {
+                    for (int j=0; j<g.enemyTex[num].backImage->width; j++) {
+                            int offset  = i*g.enemyTex[num].backImage->width*3 + j*3;
+                            int offset2 = i*g.enemyTex[num].backImage->width*4 + j*4;
+                            data1[offset2+0] = g.enemyTex[num].backImage->data[offset+0];
+                            data1[offset2+1] = g.enemyTex[num].backImage->data[offset+1];
+                            data1[offset2+2] = g.enemyTex[num].backImage->data[offset+2];
                             data1[offset2+3] =
-                                    ((unsigned char)g.enemyTex.backImage->data[offset+0] != 0 &&
-                                    (unsigned char)g.enemyTex.backImage->data[offset+1] != 0 &&
-                                    (unsigned char)g.enemyTex.backImage->data[offset+2] != 0);
+                                    ((unsigned char)g.enemyTex[num].backImage->data[offset+0] != 0 &&
+                                    (unsigned char)g.enemyTex[num].backImage->data[offset+1] != 0 &&
+                                    (unsigned char)g.enemyTex[num].backImage->data[offset+2] != 0);
                     }
             }
-    glGenTextures(1, &g.enemyTex.backTexture);
-    glBindTexture(GL_TEXTURE_2D, g.enemyTex.backTexture);
+    glGenTextures(1, &g.enemyTex[num].backTexture);
+    glBindTexture(GL_TEXTURE_2D, g.enemyTex[num].backTexture);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
     glTexImage2D(GL_TEXTURE_2D, 0, 4, w, h, 0,
             GL_RGBA, GL_UNSIGNED_BYTE, data1);
     delete [] data1;
+}
 
 
     g.weaponTex.backImage = &img[6];
@@ -827,6 +828,7 @@ class Enemy
         Vec pos;
         int speed;
         int numCorrect;
+        int textureIndex;
         // Texure texture;
     public:
         string word;
@@ -846,6 +848,7 @@ class Enemy
             pos[1] = 0;
             pos[2] = rand() % 500;
             pos[2] = float(pos[2]) / 100;
+            textureIndex = rand() % enemyTextureCount;
           
           //pos[0] = 0;
           //pos[1] = 0;
@@ -1000,7 +1003,7 @@ class Enemy
             glRotatef((enemyRot),0.0f,1.0f,0.0f);
             glScalef(scale,scale,scale);
             glColor3f(1.0f,1.0f,1.0f);
-            glBindTexture(GL_TEXTURE_2D, g.enemyTex.backTexture);
+            glBindTexture(GL_TEXTURE_2D, g.enemyTex[textureIndex].backTexture);
             
             glBegin(GL_QUADS);
                 glNormal3f( 0.0f, 0.0f, 1.0f);
