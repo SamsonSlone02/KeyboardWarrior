@@ -23,6 +23,8 @@
 #include <GL/glu.h>
 #include "fonts.h"
 #include <stack>
+#include <vector>
+#include <filesystem>
 
 
 #include "dictionary.h"
@@ -66,6 +68,7 @@ class PlayerData
 
 
 
+
 stack<char> currentText;
 
 class Image {
@@ -102,8 +105,65 @@ public:
                 if (!isPPM)
                         unlink(newfile);
         }
+
+        Image(const std::string& fname) {
+                const char* cstr = fname.c_str();
+                bool isPPM = true;
+                char str[1200];
+                char newfile[200];
+                ifstream fin;
+                char *p = strstr((char *)cstr, ".ppm");
+                if (!p) {
+                        //not a ppm file
+                        isPPM = false;
+                        strcpy(newfile, cstr);
+                        newfile[strlen(newfile)-4] = '\0';
+                        strcat(newfile, ".ppm");
+                        sprintf(str, "convert %s %s", cstr, newfile);
+                        system(str);
+                        fin.open(newfile);
+                } else {
+                        fin.open(cstr);
+                }
+                char p6[10];
+                fin >> p6;
+                fin >> width >> height;
+                fin >> max;
+                data = new char [width * height * 3];
+                fin.read(data, 1);
+                fin.read(data, width * height * 3);
+                fin.close();
+                if (!isPPM)
+                        unlink(newfile);
+        }
+
 }; Image img[7] = {"wall.png","carpet.png","sky4.jpg","ascii.png","selfie_cat.png","ceiling.png","weapon.png"};
-Image enemies[1] = {"enemy.png"};
+//Image enemies[] = {"enemy.png", "enemy2.png"};
+//const int enemyTextureCount = sizeof(enemies) / sizeof(enemies[0]);
+
+std::vector<Image> get_files_to_array(const std::string& path) {
+    std::vector<Image> file_list;
+
+    try {
+        if (std::filesystem::exists(path) && std::filesystem::is_directory(path)) {
+            for (const auto& entry : std::filesystem::directory_iterator(path)) {
+                // filter for files only, skipping sub-directories
+                if (std::filesystem::is_regular_file(entry)) {
+                    file_list.push_back(entry.path().string());
+                }
+            }
+        }
+    } catch (const std::filesystem::filesystem_error& err) {
+        std::cerr << "Filesystem error: " << err.what() << std::endl;
+    }
+
+    return file_list;
+}
+
+std::vector<Image> enemies = get_files_to_array("./enemies");
+
+
+
 class Texture {
     public:
         Image *backImage;
@@ -128,7 +188,7 @@ class Global {
         Texture carpetTex;
         Texture skyTex;
         Texture asciiTex;
-        Texture enemyTex;
+        Texture *enemyTex = new Texture[enemies.size()];
         Texture weaponTex;
         Texture ceilingTex;
         int cx;
@@ -274,6 +334,9 @@ class Global {
             }
             cout << endl;
 
+        }
+        ~Global() {
+            delete[] enemyTex;
         }
 } g;
 
@@ -634,36 +697,36 @@ void init_opengl(void)
     g.ceilingTex.yc[0] = 0.0;
     g.ceilingTex.yc[1] = 1.0;
 
-
-    g.enemyTex.backImage = &enemies[0];
+for (size_t num = 0; num < enemies.size(); num++) {
+    g.enemyTex[num].backImage = &enemies[num];
     //create opengl texture elements
-    
-    w = g.enemyTex.backImage->width;
-    h = g.enemyTex.backImage->height;
+    w = g.enemyTex[num].backImage->width;
+    h = g.enemyTex[num].backImage->height;
 
 
     glEnable(GL_TEXTURE_2D);
-    unsigned char *data1 = new unsigned char [g.enemyTex.backImage->width * g.enemyTex.backImage->height * 4];
-            for (int i=0; i<g.enemyTex.backImage->height; i++) {
-                    for (int j=0; j<g.enemyTex.backImage->width; j++) {
-                            int offset  = i*g.enemyTex.backImage->width*3 + j*3;
-                            int offset2 = i*g.enemyTex.backImage->width*4 + j*4;
-                            data1[offset2+0] = g.enemyTex.backImage->data[offset+0];
-                            data1[offset2+1] = g.enemyTex.backImage->data[offset+1];
-                            data1[offset2+2] = g.enemyTex.backImage->data[offset+2];
+    unsigned char *data1 = new unsigned char [g.enemyTex[num].backImage->width * g.enemyTex[num].backImage->height * 4];
+            for (int i=0; i<g.enemyTex[num].backImage->height; i++) {
+                    for (int j=0; j<g.enemyTex[num].backImage->width; j++) {
+                            int offset  = i*g.enemyTex[num].backImage->width*3 + j*3;
+                            int offset2 = i*g.enemyTex[num].backImage->width*4 + j*4;
+                            data1[offset2+0] = g.enemyTex[num].backImage->data[offset+0];
+                            data1[offset2+1] = g.enemyTex[num].backImage->data[offset+1];
+                            data1[offset2+2] = g.enemyTex[num].backImage->data[offset+2];
                             data1[offset2+3] =
-                                    ((unsigned char)g.enemyTex.backImage->data[offset+0] != 0 &&
-                                    (unsigned char)g.enemyTex.backImage->data[offset+1] != 0 &&
-                                    (unsigned char)g.enemyTex.backImage->data[offset+2] != 0);
+                                    ((unsigned char)g.enemyTex[num].backImage->data[offset+0] != 0 &&
+                                    (unsigned char)g.enemyTex[num].backImage->data[offset+1] != 0 &&
+                                    (unsigned char)g.enemyTex[num].backImage->data[offset+2] != 0);
                     }
             }
-    glGenTextures(1, &g.enemyTex.backTexture);
-    glBindTexture(GL_TEXTURE_2D, g.enemyTex.backTexture);
+    glGenTextures(1, &g.enemyTex[num].backTexture);
+    glBindTexture(GL_TEXTURE_2D, g.enemyTex[num].backTexture);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
     glTexImage2D(GL_TEXTURE_2D, 0, 4, w, h, 0,
             GL_RGBA, GL_UNSIGNED_BYTE, data1);
     delete [] data1;
+}
 
 
     g.weaponTex.backImage = &img[6];
@@ -910,6 +973,7 @@ class Enemy
         Vec pos;
         int speed;
         int numCorrect;
+        int textureIndex;
         // Texure texture;
     public:
         string word;
@@ -929,6 +993,7 @@ class Enemy
             pos[1] = 0;
             pos[2] = rand() % 500;
             pos[2] = float(pos[2]) / 100;
+            textureIndex = rand() % enemies.size();
           
           //pos[0] = 0;
           //pos[1] = 0;
@@ -1083,7 +1148,7 @@ class Enemy
             glRotatef((enemyRot),0.0f,1.0f,0.0f);
             glScalef(scale,scale,scale);
             glColor3f(1.0f,1.0f,1.0f);
-            glBindTexture(GL_TEXTURE_2D, g.enemyTex.backTexture);
+            glBindTexture(GL_TEXTURE_2D, g.enemyTex[textureIndex].backTexture);
             
             glBegin(GL_QUADS);
                 glNormal3f( 0.0f, 0.0f, 1.0f);
@@ -1258,22 +1323,21 @@ void createTile(int x, int y, int z, bool n, bool e, bool s, bool w)
 
 void drawMap()
 {
-	int height = g.mazeHeight;
-	int width = g.mazeWidth;
+    int height = g.mazeHeight;
+    int width = g.mazeWidth;
 
-	for(int i =-height; i < height;i++)
-	{
-		for(int j = t -width; j < width;j++)
-		{
-            if(j % 2 != 0 && i % 2 == 0)
-			    createTile(i * 2,0,j * 2,false,true,false,true);
-            if(j % 2 == 0 && i % 2 !=0)
-                createTile(i * 2,0,j * 2,true,false,true,false);
-            else 
-                createTile(i * 2,0,j * 2,false,false,false,false);
-		}   
-	}
-
+    for (int i = -height; i < height; i++)
+    {
+        for (int j = -width; j < width; j++)
+        {
+            if (j % 2 != 0 && i % 2 == 0)
+                createTile(i * 2, 0, j * 2, false, true, false, true);
+            else if (j % 2 == 0 && i % 2 != 0)
+                createTile(i * 2, 0, j * 2, true, false, true, false);
+            else
+                createTile(i * 2, 0, j * 2, false, false, false, false);
+        }
+    }
 }
 
 const int nEnemies = 4;
