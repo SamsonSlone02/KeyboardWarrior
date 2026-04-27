@@ -194,6 +194,9 @@ class Global {
         int cx;
         int cy;
         int cz;
+        int pause;
+
+        int keys[65536];
 
         Flt yaw;
         Flt pitch;
@@ -232,6 +235,7 @@ class Global {
             vecMake(0.0f,0.0f,0.0f,cameraPos);
             vecMake(0.0f,0.0f,-1.0f,cameraFront);
             srand(time(NULL));
+            pause = 0;
             
             xres = 640;
             yres = 480;
@@ -421,6 +425,62 @@ class X11_wrapper {
         }
 } x11;
 
+void showPauseScreen() {
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, g.xres, 0, g.yres, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Disable 3D stuff temporarily.
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_TEXTURE_2D);
+
+    // Enable transparency.
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Draw faded black rectangle over whole screen.
+    glColor4f(0.0f, 0.0f, 0.0f, 0.55f);
+
+    glBegin(GL_QUADS);
+        glVertex2f(0, 0);
+        glVertex2f(g.xres, 0);
+        glVertex2f(g.xres, g.yres);
+        glVertex2f(0, g.yres);
+    glEnd();
+
+    // Draw pause text.
+    glEnable(GL_TEXTURE_2D);
+
+    Rect r;
+    r.bot = g.yres / 2;
+    r.left = g.xres / 2 - 40;
+    r.center = 0;
+
+    ggprint16(&r, 16, 0x00ffffff, "PAUSED");
+    r.bot = g.yres / 2 - 30;
+    r.left = g.xres / 2 - 80;
+    ggprint8b(&r, 16, 0x00ffffff, "Press Shift+P to unpause");
+
+    // Restore OpenGL state.
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+
+    glMatrixMode(GL_MODELVIEW);
+}
+
 void init_opengl(void);
 void DrawGLSkybox();
 void init_textures(void);
@@ -464,7 +524,9 @@ int main(void)
         statsCountdown += timeSpan;
 
 		while(physicsCountdown >= physicsRate) {
-            physics();
+            if (!g.pause) {
+                physics();
+            }
             ++physicsFrames;
             physicsCountdown -= physicsRate;
 		}
@@ -795,9 +857,26 @@ void check_mouse(XEvent *e)
 int check_keys(XEvent *e)
 {
     //Was there input from the keyboard?
-    if (e->type != KeyPress && e->type != KeyPress)
+    if (e->type != KeyPress && e->type != KeyRelease)
         return 0;
     int key = XLookupKeysym(&e->xkey, 0);
+
+    if (e->type == KeyPress) {
+       g.keys[key] = true;
+    }
+
+    if (e->type == KeyRelease) {
+        g.keys[key] = false;
+        return 0;
+    }
+
+    if (g.keys[XK_Shift_L] && key == XK_p) {
+        g.pause = !g.pause;
+        g.keys[XK_p] = false; // prevents toggling repeatedly
+        return 0;
+    }
+
+
     if(!g.typeMode)
     {
         switch(key) {
@@ -1396,7 +1475,9 @@ void TypeDebug()
 	    }
 	    //cout << g.textbox << endl;
 	  //  cout << debugEnemy[i]->word << endl;
-	    debugEnemy[i]->update();
+	    if (!g.pause) {
+		debugEnemy[i]->update();
+	    }
 	    debugEnemy[i]->draw();
 	}
 
@@ -1443,7 +1524,9 @@ void TypeDebug()
 	//glPopMatrix();
     glPopMatrix();
     
-    checkCameraTurn();
+    if (!g.pause) {
+        checkCameraTurn();
+    }
     
     /*
     if(!g.cameraBusy)
@@ -1453,7 +1536,7 @@ void TypeDebug()
     }
 */
 
-    if(!g.cameraBusy)
+    if(!g.pause && !g.cameraBusy)
     {
         static float distance = 0;
         const float err =0.1f;
@@ -1753,6 +1836,9 @@ void render(void)
 
 
     glClear(GL_COLOR_BUFFER_BIT);
+
+
+
     //
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -1799,5 +1885,7 @@ void render(void)
     ggprint8b(&r, 16, 0x008877aa, "U,I - UP,DOWN");
     ggprint8b(&r, 16, 0x008877aa, "J,K - TILT UP,TILT DOWN");
     ggprint8b(&r, 16, 0x00ffff00, "FPS: %d", displayedFPS);
-    //    ggprint8b(&r, 16, 0x00ddeeff, "UPS: %d", displayedUPS);
+    if (g.pause) {
+        showPauseScreen();
+    }
 }
