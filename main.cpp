@@ -1905,6 +1905,7 @@ void render(void)
     ggprint8b(&r, 16, 0x008877aa, "O,P - TURN");
     ggprint8b(&r, 16, 0x008877aa, "U,I - UP,DOWN");
     ggprint8b(&r, 16, 0x008877aa, "J,K - TILT UP,TILT DOWN");
+    ggprint8b(&r, 16, 0x008877aa, "SHIFT+P - PAUSE");
     ggprint8b(&r, 16, 0x00ffff00, "FPS: %d", displayedFPS);
     if (g.pause) {
         showPauseScreen();
