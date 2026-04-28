@@ -1883,7 +1883,7 @@ void updateLesson2(float dt)
 void physics(void)
 {
     const float dt = (float)physicsRate;
-    cout << g.lesson_num << endl;
+//    cout << g.lesson_num << endl;
     switch (g.lesson_num) {
         case 1:
             updateLesson1(dt);
