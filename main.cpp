@@ -225,9 +225,11 @@ class Global {
         string textbox;
 
         int typeMode;
+        //music IDs
         int titleMusic;
         int gameMusic;
         int pauseMusic;
+        int deathMusic;
 
         Global() {
             currentStep = 0;
@@ -254,6 +256,7 @@ class Global {
             titleMusic = sound.loadWav("737engine.wav", true, 1.0f, 1.0f);
             gameMusic = titleMusic;
             pauseMusic = sound.loadWav("pauseMusic.wav", true, 1.0f, 1.0f);
+            deathMusic = sound.loadWav("deathSound.wav", false, 1.0f, 1.0f);
             
             GLfloat la[]  = {  0.0f, 0.0f, 0.0f, 1.0f };
             GLfloat ld[]  = {  1.0f, 1.0f, 1.0f, 1.0f };
@@ -1335,6 +1338,10 @@ class Enemy
 		else 
 			return false;
 	}
+    ~Enemy() {
+       //play song 
+        g.sound.play(g.deathMusic);
+    }
 };
 
 
@@ -1517,9 +1524,10 @@ void TypeDebug()
 
 	    if(debugEnemy[i]->checkMatch(g.textbox))
 	    {
-		debugEnemy[i] = new Enemy();
-		stack<char> emptyText;
-		currentText =  emptyText;
+            delete debugEnemy[i];
+    		debugEnemy[i] = new Enemy();
+    		stack<char> emptyText;
+    		currentText =  emptyText;
 	    }
 	    //cout << g.textbox << endl;
 	  //  cout << debugEnemy[i]->word << endl;
