@@ -25,6 +25,7 @@
 #include <stack>
 #include <vector>
 #include <filesystem>
+#include "GameSound.h"
 
 
 #include "dictionary.h"
@@ -195,6 +196,7 @@ class Global {
         int cy;
         int cz;
         int pause;
+        GameSound sound;
 
         int keys[65536];
 
@@ -223,6 +225,9 @@ class Global {
         string textbox;
 
         int typeMode;
+        int titleMusic;
+        int gameMusic;
+        int pauseMusic;
 
         Global() {
             currentStep = 0;
@@ -236,12 +241,19 @@ class Global {
             vecMake(0.0f,0.0f,-1.0f,cameraFront);
             srand(time(NULL));
             pause = 0;
-            
             xres = 640;
             yres = 480;
 
             mazeHeight = 30;
             mazeWidth = 30;
+
+            if (!sound.init()) {
+                fprintf(stderr, "Failed to initialize sound: %s\n", sound.lastError());
+            }
+            //load all music we will be using
+            titleMusic = sound.loadWav("737engine.wav", true, 1.0f, 1.0f);
+            gameMusic = titleMusic;
+            pauseMusic = sound.loadWav("pauseMusic.wav", true, 1.0f, 1.0f);
             
             GLfloat la[]  = {  0.0f, 0.0f, 0.0f, 1.0f };
             GLfloat ld[]  = {  1.0f, 1.0f, 1.0f, 1.0f };
@@ -459,7 +471,7 @@ void showPauseScreen() {
 
     Rect r;
     r.bot = g.yres / 2;
-    r.left = g.xres / 2 - 40;
+    r.left = g.xres / 2 - 45;
     r.center = 0;
 
     ggprint16(&r, 16, 0x00ffffff, "PAUSED");
@@ -501,6 +513,7 @@ int main(void)
     //Do this to allow fonts
     glEnable(GL_TEXTURE_2D);
     initialize_fonts();
+    g.sound.play(g.titleMusic);
     clock_gettime(CLOCK_MONOTONIC, &timeStart);
     int done = 0;
     while (!done) {
@@ -556,6 +569,7 @@ int main(void)
         }
     }
     cleanup_fonts();
+    g.sound.shutdown();
     return 0;
 }
 
@@ -872,6 +886,13 @@ int check_keys(XEvent *e)
 
     if (g.keys[XK_Shift_L] && key == XK_p) {
         g.pause = !g.pause;
+        if (g.pause) {
+            g.sound.stop(g.titleMusic);
+            g.sound.play(g.pauseMusic);
+        } else {
+            g.sound.stop(g.pauseMusic);
+            g.sound.play(g.titleMusic);
+        }
         g.keys[XK_p] = false; // prevents toggling repeatedly
         return 0;
     }
