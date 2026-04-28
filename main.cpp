@@ -500,7 +500,11 @@ void check_mouse(XEvent *e);
 int check_keys(XEvent *e);
 void physics(void);
 void render(void);
-void checkCameraTurn(float dt);
+void updateCameraFront();
+void updateLesson1(float dt);
+void updateLesson2(float dt);
+void updateScriptedCameraTurn(float dt);
+void updateAutoNavigation(float dt);
 
 int main(void)
 {
@@ -901,6 +905,7 @@ int check_keys(XEvent *e)
 
     if(!g.typeMode)
     {
+        updateCameraFront();
         const float keyMoveStep = g.moveSpeed * (float)physicsRate;
         switch(key) {
             case XK_1:
@@ -974,20 +979,24 @@ int check_keys(XEvent *e)
                 //g.cy -=1;
                 g.yaw-=1;
                 g.targetCameraYaw = ' ';
+                updateCameraFront();
                 printf("%f, ",g.cameraFront[0]);
                 printf("%f\n",g.cameraFront[2]);
                 break;
             case XK_p:
                 g.yaw+=1;
                 g.targetCameraYaw = ' ';
+                updateCameraFront();
                 printf("%f, ",g.cameraFront[0]);
                 printf("%f\n",g.cameraFront[2]);
                 break;
             case XK_k:
                 g.pitch +=1;
+                updateCameraFront();
                 break;
             case XK_j:
                 g.pitch -=1;
+                updateCameraFront();
                 break;
             case XK_u:
                 g.cameraPos[1] +=1;
@@ -1024,7 +1033,16 @@ int check_keys(XEvent *e)
 
 
 
-void checkCameraTurn(float dt)
+void updateCameraFront()
+{
+    g.cameraFront[0] = cos(g.yaw * (2.0f * (PI /180.0f))) *
+        cos(g.pitch * (2.0f * (PI/180.0f)));
+    g.cameraFront[1] = sin(g.pitch * (2.0f * (PI/180.0f)));
+    g.cameraFront[2] = sin(g.yaw * (2.0f * (PI /180.0f))) *
+        cos(g.pitch * (2.0f * (PI/180.0f)));
+}
+
+void updateScriptedCameraTurn(float dt)
 {   
 
 
@@ -1080,7 +1098,7 @@ class Enemy
         
         Vec tpos;
         Vec pos;
-        int speed;
+        float speed;
         int numCorrect;
         int textureIndex;
         // Texure texture;
@@ -1094,7 +1112,7 @@ class Enemy
             tpos[0] = rand() % (g.xres - 30);
             tpos[1] = rand() % (g.yres - 30);
             
-            speed = 2;
+            speed = 2.0f;
           
           
             pos[0] = rand() % 500;
@@ -1110,14 +1128,14 @@ class Enemy
             numCorrect = 0;
             cout << pos[0] << ", " << pos[1] << ", " << pos[2] << endl;
         }
-        void update()
+        void update(float dt)
         {
             
                 Vec playerDir;
                 vecMake(g.cameraPos[0],g.cameraPos[1],g.cameraPos[2],playerDir);
                 vecSub(g.cameraPos,pos,playerDir);
                 vecNormalize(playerDir);
-                vecScale(playerDir, speed * 0.005f,playerDir);
+                vecScale(playerDir, speed * dt, playerDir);
                 vecAdd(pos,playerDir,pos);
                 numCorrect = 0;
                 for(int i = 0; i < (int)g.textbox.length();i++)
@@ -1505,9 +1523,6 @@ void TypeDebug()
 	    }
 	    //cout << g.textbox << endl;
 	  //  cout << debugEnemy[i]->word << endl;
-	    if (!g.pause) {
-		debugEnemy[i]->update();
-	    }
 	    debugEnemy[i]->draw();
 	}
 
@@ -1824,23 +1839,24 @@ void DrawGLSkybox()
 }
 
 
-void physics(void)
+void updateLesson1(float dt)
 {
-    if (g.lesson_num != 1 && g.lesson_num != 2) {
-        return;
+    updateAutoNavigation(dt);
+    for (int i = 0; i < nEnemies; i++) {
+        if (debugEnemy[i]) {
+            debugEnemy[i]->update(dt);
+        }
     }
+}
 
-    const float dt = (float)physicsRate;
-    const float moveStep = g.moveSpeed * dt;
+void updateAutoNavigation(float dt)
+{
     static float distance = 0.0f;
+    const float moveStep = g.moveSpeed * dt;
     const float err = 0.1f;
 
-    checkCameraTurn(dt);
-    g.cameraFront[0] = cos(g.yaw * (2.0f * (PI /180.0f))) *
-        cos(g.pitch * (2.0f * (PI/180.0f)));
-    g.cameraFront[1] = sin(g.pitch * (2.0f * (PI/180.0f)));
-    g.cameraFront[2] = sin(g.yaw * (2.0f * (PI /180.0f))) *
-        cos(g.pitch * (2.0f * (PI/180.0f)));
+    updateScriptedCameraTurn(dt);
+    updateCameraFront();
 
     if (!g.cameraBusy) {
         Vec cfuTemp;
@@ -1848,16 +1864,36 @@ void physics(void)
         vecAdd(g.cameraPos, cfuTemp, g.cameraPos);
         distance += moveStep;
 
-        if (g.currentStep < 500) {
-            char cur = g.steps[g.currentStep];
-            if (distance <= 4.0f + err && distance >= 4.0f - err) {
-                g.targetCameraYaw = cur;
-                printf("turning %c", g.targetCameraYaw);
-                g.currentStep++;
-                distance = 0.0f;
-            }
+        if (g.currentStep < 500 &&
+                distance <= 4.0f + err && distance >= 4.0f - err) {
+            g.targetCameraYaw = g.steps[g.currentStep];
+            printf("turning %c", g.targetCameraYaw);
+            g.currentStep++;
+            distance = 0.0f;
             fflush(stdout);
         }
+    }
+}
+
+void updateLesson2(float dt)
+{
+    updateAutoNavigation(dt);
+}
+
+void physics(void)
+{
+    const float dt = (float)physicsRate;
+    cout << g.lesson_num << endl;
+    switch (g.lesson_num) {
+        case 1:
+            updateLesson1(dt);
+            break;
+        case 2:
+            updateLesson2(dt);
+            break;
+        default:
+            updateCameraFront();
+            break;
     }
 }
 
@@ -1883,9 +1919,7 @@ void render(void)
 
 
     //
-    g.cameraFront[0] = cos(g.yaw * (2.0f * (PI /180.0f))) * cos(g.pitch * (2.0f * (PI/180.0f)));
-    g.cameraFront[1] = sin( g.pitch * (2.0f * (PI/180.0f)));
-    g.cameraFront[2] = sin(g.yaw * (2.0f * (PI /180.0f))) * cos(g.pitch * (2.0f * (PI/180.0f)));
+    updateCameraFront();
     Vec added;
     vecAdd(g.cameraPos,g.cameraFront,added);
     gluLookAt((double)g.cameraPos[0],(double)g.cameraPos[1],(double)g.cameraPos[2],  (double)added[0],(double)added[1],(double)added[2],(double)g.cameraUp[0],(double)g.cameraUp[1],(double)g.cameraUp[2]);
