@@ -209,12 +209,12 @@ class Global {
         
 
         char targetCameraYaw;
-        int cameraTurnSpeed;
+        float cameraTurnSpeed;
         bool cameraBusy;
 
         int currentStep;
         char steps[500] = {};
-        float moveSpeed = 0.2f;
+        float moveSpeed = 6.0f;
 
         Dictionary myDictionary;
         string textbox;
@@ -223,7 +223,7 @@ class Global {
 
         Global() {
             currentStep = 0;
-            cameraTurnSpeed = 5;
+            cameraTurnSpeed = 150.0f;
             targetCameraYaw = ' ';
             yaw = 0.0f;
             pitch = 0.0f;
@@ -428,6 +428,7 @@ void check_mouse(XEvent *e);
 int check_keys(XEvent *e);
 void physics(void);
 void render(void);
+void checkCameraTurn(float dt);
 
 int main(void)
 {
@@ -800,6 +801,7 @@ int check_keys(XEvent *e)
     int key = XLookupKeysym(&e->xkey, 0);
     if(!g.typeMode)
     {
+        const float keyMoveStep = g.moveSpeed * (float)physicsRate;
         switch(key) {
             case XK_1:
                 g.lesson_num = 1;
@@ -846,24 +848,26 @@ int check_keys(XEvent *e)
                 break;
             case XK_Up:
                 Vec cfuTemp;
-                vecScale(g.cameraFront,g.moveSpeed,cfuTemp);
+                vecScale(g.cameraFront,keyMoveStep,cfuTemp);
                 vecAdd(g.cameraPos,cfuTemp,g.cameraPos);
                 break;
             case XK_Down:
                 Vec cfdTemp;
-                vecScale(g.cameraFront,g.moveSpeed,cfdTemp);
+                vecScale(g.cameraFront,keyMoveStep,cfdTemp);
                 vecSub(g.cameraPos,cfdTemp,g.cameraPos);
                 break;
             case XK_Left:
                 Vec crossTempL;
                 vecCrossProduct(g.cameraFront,g.cameraUp,crossTempL);
                 vecNormalize(crossTempL);
+                vecScale(crossTempL,keyMoveStep,crossTempL);
                 vecSub(g.cameraPos,crossTempL,g.cameraPos);
                 break;
             case XK_Right:
                 Vec crossTempR;
                 vecCrossProduct(g.cameraFront,g.cameraUp,crossTempR);
                 vecNormalize(crossTempR);
+                vecScale(crossTempR,keyMoveStep,crossTempR);
                 vecAdd(g.cameraPos,crossTempR,g.cameraPos);
                 break;
             case XK_o:
@@ -920,7 +924,7 @@ int check_keys(XEvent *e)
 
 
 
-void checkCameraTurn()
+void checkCameraTurn(float dt)
 {   
 
 
@@ -945,7 +949,12 @@ void checkCameraTurn()
 
     }
 
-    if(g.yaw < target+ g.cameraTurnSpeed && g.yaw > target - g.cameraTurnSpeed)
+    float turnStep = g.cameraTurnSpeed * dt;
+    if (turnStep <= 0.0f) {
+        turnStep = 0.001f;
+    }
+
+    if(g.yaw < target + turnStep && g.yaw > target - turnStep)
     {
         g.cameraBusy = false;
         g.yaw = target;
@@ -955,11 +964,11 @@ void checkCameraTurn()
         g.cameraBusy = true;
         if(target < g.yaw)
         {
-            g.yaw -= g.cameraTurnSpeed;
+            g.yaw -= turnStep;
         }
         if(target > g.yaw)
         {
-            g.yaw+= g.cameraTurnSpeed;
+            g.yaw += turnStep;
         }
 
 
@@ -1443,37 +1452,6 @@ void TypeDebug()
 	//glPopMatrix();
     glPopMatrix();
     
-    checkCameraTurn();
-    
-    /*
-    if(!g.cameraBusy)
-    {        
-        char dir[4] = {'n','s','e','w'};
-        g.targetCameraYaw = dir[rand() % 4];
-    }
-*/
-
-    if(!g.cameraBusy)
-    {
-        static float distance = 0;
-        const float err =0.1f;
-        Vec cfuTemp; //camera front updated temp
-        vecScale(g.cameraFront,g.moveSpeed,cfuTemp);
-        vecAdd(g.cameraPos,cfuTemp,g.cameraPos);
-        char cur = g.steps[g.currentStep];
-        distance+=g.moveSpeed;
-        if(distance <= 4.0f+err && distance >=4.0f-err)
-        {
-            g.targetCameraYaw = cur;
-            printf("turning %c",g.targetCameraYaw);
-            g.currentStep++;
-            distance=0;
-        }
-        fflush(stdout);
-    }
-
-
-
 }
 void DrawGame()
 {
@@ -1504,7 +1482,6 @@ void DrawGame()
 
 
     createTile(0,0,0,true,true,true,true);
-    checkCameraTurn();
     /*
        if(!g.cameraBusy)
        {
@@ -1745,7 +1722,42 @@ void DrawGLSkybox()
 }
 
 
-void physics(void) { }
+void physics(void)
+{
+    if (g.lesson_num != 1 && g.lesson_num != 2) {
+        return;
+    }
+
+    const float dt = (float)physicsRate;
+    const float moveStep = g.moveSpeed * dt;
+    static float distance = 0.0f;
+    const float err = 0.1f;
+
+    checkCameraTurn(dt);
+    g.cameraFront[0] = cos(g.yaw * (2.0f * (PI /180.0f))) *
+        cos(g.pitch * (2.0f * (PI/180.0f)));
+    g.cameraFront[1] = sin(g.pitch * (2.0f * (PI/180.0f)));
+    g.cameraFront[2] = sin(g.yaw * (2.0f * (PI /180.0f))) *
+        cos(g.pitch * (2.0f * (PI/180.0f)));
+
+    if (!g.cameraBusy) {
+        Vec cfuTemp;
+        vecScale(g.cameraFront, moveStep, cfuTemp);
+        vecAdd(g.cameraPos, cfuTemp, g.cameraPos);
+        distance += moveStep;
+
+        if (g.currentStep < 500) {
+            char cur = g.steps[g.currentStep];
+            if (distance <= 4.0f + err && distance >= 4.0f - err) {
+                g.targetCameraYaw = cur;
+                printf("turning %c", g.targetCameraYaw);
+                g.currentStep++;
+                distance = 0.0f;
+            }
+            fflush(stdout);
+        }
+    }
+}
 
 void render(void)
 {
