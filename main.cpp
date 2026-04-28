@@ -25,6 +25,7 @@
 #include <stack>
 #include <vector>
 #include <filesystem>
+#include "GameSound.h"
 
 
 #include "dictionary.h"
@@ -194,6 +195,10 @@ class Global {
         int cx;
         int cy;
         int cz;
+        int pause;
+        GameSound sound;
+
+        int keys[65536];
 
         Flt yaw;
         Flt pitch;
@@ -220,6 +225,9 @@ class Global {
         string textbox;
 
         int typeMode;
+        int titleMusic;
+        int gameMusic;
+        int pauseMusic;
 
         Global() {
             currentStep = 0;
@@ -232,12 +240,20 @@ class Global {
             vecMake(0.0f,0.0f,0.0f,cameraPos);
             vecMake(0.0f,0.0f,-1.0f,cameraFront);
             srand(time(NULL));
-            
+            pause = 0;
             xres = 640;
             yres = 480;
 
             mazeHeight = 30;
             mazeWidth = 30;
+
+            if (!sound.init()) {
+                fprintf(stderr, "Failed to initialize sound: %s\n", sound.lastError());
+            }
+            //load all music we will be using
+            titleMusic = sound.loadWav("737engine.wav", true, 1.0f, 1.0f);
+            gameMusic = titleMusic;
+            pauseMusic = sound.loadWav("pauseMusic.wav", true, 1.0f, 1.0f);
             
             GLfloat la[]  = {  0.0f, 0.0f, 0.0f, 1.0f };
             GLfloat ld[]  = {  1.0f, 1.0f, 1.0f, 1.0f };
@@ -421,6 +437,62 @@ class X11_wrapper {
         }
 } x11;
 
+void showPauseScreen() {
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, g.xres, 0, g.yres, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Disable 3D stuff temporarily.
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_TEXTURE_2D);
+
+    // Enable transparency.
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Draw faded black rectangle over whole screen.
+    glColor4f(0.0f, 0.0f, 0.0f, 0.55f);
+
+    glBegin(GL_QUADS);
+        glVertex2f(0, 0);
+        glVertex2f(g.xres, 0);
+        glVertex2f(g.xres, g.yres);
+        glVertex2f(0, g.yres);
+    glEnd();
+
+    // Draw pause text.
+    glEnable(GL_TEXTURE_2D);
+
+    Rect r;
+    r.bot = g.yres / 2;
+    r.left = g.xres / 2 - 45;
+    r.center = 0;
+
+    ggprint16(&r, 16, 0x00ffffff, "PAUSED");
+    r.bot = g.yres / 2 - 30;
+    r.left = g.xres / 2 - 80;
+    ggprint8b(&r, 16, 0x00ffffff, "Press Shift+P to unpause");
+
+    // Restore OpenGL state.
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+
+    glMatrixMode(GL_MODELVIEW);
+}
+
 void init_opengl(void);
 void DrawGLSkybox();
 void init_textures(void);
@@ -442,6 +514,7 @@ int main(void)
     //Do this to allow fonts
     glEnable(GL_TEXTURE_2D);
     initialize_fonts();
+    g.sound.play(g.titleMusic);
     clock_gettime(CLOCK_MONOTONIC, &timeStart);
     int done = 0;
     while (!done) {
@@ -465,7 +538,9 @@ int main(void)
         statsCountdown += timeSpan;
 
 		while(physicsCountdown >= physicsRate) {
-            physics();
+            if (!g.pause) {
+                physics();
+            }
             ++physicsFrames;
             physicsCountdown -= physicsRate;
 		}
@@ -495,6 +570,7 @@ int main(void)
         }
     }
     cleanup_fonts();
+    g.sound.shutdown();
     return 0;
 }
 
@@ -796,9 +872,33 @@ void check_mouse(XEvent *e)
 int check_keys(XEvent *e)
 {
     //Was there input from the keyboard?
-    if (e->type != KeyPress && e->type != KeyPress)
+    if (e->type != KeyPress && e->type != KeyRelease)
         return 0;
     int key = XLookupKeysym(&e->xkey, 0);
+
+    if (e->type == KeyPress) {
+       g.keys[key] = true;
+    }
+
+    if (e->type == KeyRelease) {
+        g.keys[key] = false;
+        return 0;
+    }
+
+    if (g.keys[XK_Shift_L] && key == XK_p) {
+        g.pause = !g.pause;
+        if (g.pause) {
+            g.sound.stop(g.titleMusic);
+            g.sound.play(g.pauseMusic);
+        } else {
+            g.sound.stop(g.pauseMusic);
+            g.sound.play(g.titleMusic);
+        }
+        g.keys[XK_p] = false; // prevents toggling repeatedly
+        return 0;
+    }
+
+
     if(!g.typeMode)
     {
         const float keyMoveStep = g.moveSpeed * (float)physicsRate;
@@ -1405,7 +1505,9 @@ void TypeDebug()
 	    }
 	    //cout << g.textbox << endl;
 	  //  cout << debugEnemy[i]->word << endl;
-	    debugEnemy[i]->update();
+	    if (!g.pause) {
+		debugEnemy[i]->update();
+	    }
 	    debugEnemy[i]->draw();
 	}
 
@@ -1765,6 +1867,9 @@ void render(void)
 
 
     glClear(GL_COLOR_BUFFER_BIT);
+
+
+
     //
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -1810,6 +1915,9 @@ void render(void)
     ggprint8b(&r, 16, 0x008877aa, "O,P - TURN");
     ggprint8b(&r, 16, 0x008877aa, "U,I - UP,DOWN");
     ggprint8b(&r, 16, 0x008877aa, "J,K - TILT UP,TILT DOWN");
+    ggprint8b(&r, 16, 0x008877aa, "SHIFT+P - PAUSE");
     ggprint8b(&r, 16, 0x00ffff00, "FPS: %d", displayedFPS);
-    //    ggprint8b(&r, 16, 0x00ddeeff, "UPS: %d", displayedUPS);
+    if (g.pause) {
+        showPauseScreen();
+    }
 }
