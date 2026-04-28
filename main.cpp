@@ -225,6 +225,7 @@ class Global {
         string textbox;
 
         int typeMode;
+        int inBattle;
         int titleMusic;
         int gameMusic;
         int pauseMusic;
@@ -236,6 +237,7 @@ class Global {
             yaw = 0.0f;
             pitch = 0.0f;
             typeMode = 0;
+            inBattle = 0;
             vecMake(0.0f,1.0f,0.0f,cameraUp);
             vecMake(0.0f,0.0f,0.0f,cameraPos);
             vecMake(0.0f,0.0f,-1.0f,cameraFront);
@@ -1065,6 +1067,7 @@ void checkCameraTurn()
 
     }
 }
+
 class Enemy
 {
     private:
@@ -1074,25 +1077,35 @@ class Enemy
         int speed;
         int numCorrect;
         int textureIndex;
+        int isActive;
+        
         // Texure texture;
     public:
         string word;
-        Enemy()
+        
+        
+        Enemy(Vec in_pos, int in_isActive)
         {
             //   texture;
             //srand(time(NULL));
+
+
             word = g.myDictionary.getRandomWord();
             tpos[0] = rand() % (g.xres - 30);
             tpos[1] = rand() % (g.yres - 30);
             
             speed = 2;
+            pos[0] = in_pos[0];
+            pos[1] = in_pos[1];
+            pos[2] = in_pos[2];
+
+            isActive = in_isActive;
           
-          
-            pos[0] = rand() % 500;
-            pos[0] = float(pos[0]) / 100;
-            pos[1] = 0;
-            pos[2] = rand() % 500;
-            pos[2] = float(pos[2]) / 100;
+            // pos[0] = rand() % 500;
+            // pos[0] = float(pos[0]) / 100;
+            // pos[1] = 0;
+            // pos[2] = rand() % 500;
+            // pos[2] = float(pos[2]) / 100;
             textureIndex = rand() % enemies.size();
           
           //pos[0] = 0;
@@ -1103,7 +1116,8 @@ class Enemy
         }
         void update()
         {
-            
+            if(isActive)
+            {
                 Vec playerDir;
                 vecMake(g.cameraPos[0],g.cameraPos[1],g.cameraPos[2],playerDir);
                 vecSub(g.cameraPos,pos,playerDir);
@@ -1117,7 +1131,21 @@ class Enemy
                         break;
                     numCorrect = i + 1;
                 }
+            }
         }
+        int getActive()
+        {
+            return isActive;
+        }
+
+        void setActive(int in_isActive)
+        {
+            if(in_isActive == 0)
+                isActive = 0;
+            if(in_isActive == 1)
+                isActive = 1;
+        }
+
         string getWord()
         {
             return word;
@@ -1132,6 +1160,9 @@ class Enemy
         }
         void drawString(string input)
         {
+
+            if(isActive)
+            {
             int wl = input.length();
             const string textureKey = " ! #$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[ ]^_ abcdefghijklmnopqrstuvwxyz{|}~ ........................";
 
@@ -1159,6 +1190,7 @@ class Enemy
                 glColor3f(1.0f,0.5f,0.5f);
                 glBindTexture(GL_TEXTURE_2D, g.asciiTex.backTexture);
                 glBegin(GL_QUADS);
+            
             for(int i = 0; i < wl;i++)
             {
 
@@ -1225,45 +1257,48 @@ class Enemy
 	    glEnd();
 	    glPopMatrix();
 	    glBindTexture(GL_TEXTURE_2D, 0);
-
+    }
 	}
 	void drawEnemy()
 	{
 
-		float scale = 0.4f;
-		glPushMatrix();
-            glEnable(GL_ALPHA_TEST);
-            glAlphaFunc(GL_GREATER,0.0f);
+        if(isActive)
+        {
+            float scale = 0.4f;
+            glPushMatrix();
+                glEnable(GL_ALPHA_TEST);
+                glAlphaFunc(GL_GREATER,0.0f);
+                
             
-           
-            
-            Vec playerDir;
-            playerDir[0] =   g.cameraPos[0] - pos[0]; 
-            playerDir[2] =  g.cameraPos[2] - pos[2];
-            float adj_angle = -(atan2(playerDir[2],playerDir[0]) * (180/PI));
-            int enemyRot = (((int)adj_angle + 360) % 360) + 90;
+                
+                Vec playerDir;
+                playerDir[0] =   g.cameraPos[0] - pos[0]; 
+                playerDir[2] =  g.cameraPos[2] - pos[2];
+                float adj_angle = -(atan2(playerDir[2],playerDir[0]) * (180/PI));
+                int enemyRot = (((int)adj_angle + 360) % 360) + 90;
 
-            glColor4ub(255,255,255,255);
-            glTranslatef(pos[0] ,(1 * scale)-1,pos[2]);
-            glRotatef((enemyRot),0.0f,1.0f,0.0f);
-            glScalef(scale,scale,scale);
-            glColor3f(1.0f,1.0f,1.0f);
-            glBindTexture(GL_TEXTURE_2D, g.enemyTex[textureIndex].backTexture);
-            
-            glBegin(GL_QUADS);
-                glNormal3f( 0.0f, 0.0f, 1.0f);
+                glColor4ub(255,255,255,255);
+                glTranslatef(pos[0] ,(1 * scale)-1,pos[2]);
+                glRotatef((enemyRot),0.0f,1.0f,0.0f);
+                glScalef(scale,scale,scale);
                 glColor3f(1.0f,1.0f,1.0f);
-                glColor3f(1.0f,1.0f,1.0f);
-                glTexCoord2f(0.0f, 0.0f);glVertex3f(-1.0f, 1.0f, 0.01f);
-                glTexCoord2f(1.0f, 0.0f);glVertex3f( 1.0f, 1.0f, 0.01f);
-                glTexCoord2f(1.0f, 1.0f);glVertex3f( 1.0f,-1.0f, 0.01f);
-                glTexCoord2f(0.0f, 1.0f);glVertex3f(-1.0f,-1.0f, 0.01f);
-            glEnd();
+                glBindTexture(GL_TEXTURE_2D, g.enemyTex[textureIndex].backTexture);
+                
+                glBegin(GL_QUADS);
+                    glNormal3f( 0.0f, 0.0f, 1.0f);
+                    glColor3f(1.0f,1.0f,1.0f);
+                    glColor3f(1.0f,1.0f,1.0f);
+                    glTexCoord2f(0.0f, 0.0f);glVertex3f(-1.0f, 1.0f, 0.01f);
+                    glTexCoord2f(1.0f, 0.0f);glVertex3f( 1.0f, 1.0f, 0.01f);
+                    glTexCoord2f(1.0f, 1.0f);glVertex3f( 1.0f,-1.0f, 0.01f);
+                    glTexCoord2f(0.0f, 1.0f);glVertex3f(-1.0f,-1.0f, 0.01f);
+                glEnd();
 
+                glBindTexture(GL_TEXTURE_2D, 0);
+                glDisable(GL_ALPHA_TEST);   
+            glPopMatrix();
             glBindTexture(GL_TEXTURE_2D, 0);
-            glDisable(GL_ALPHA_TEST);   
-		glPopMatrix();
-		glBindTexture(GL_TEXTURE_2D, 0);
+        }
 	}
 
 	void draw()
@@ -1309,7 +1344,6 @@ class Enemy
 			return false;
 	}
 };
-
 
 
 void createTile(int x, int y, int z, bool n, bool e, bool s, bool w)
@@ -1440,21 +1474,47 @@ void drawMap()
     }
 }
 
-const int nEnemies = 4;
+const int nEnemies = 3;
 Enemy * debugEnemy[nEnemies];
+void spawnEnemies()
+{   
+    g.inBattle = 1;
+    g.cameraBusy = 1;
+    Vec enemyPos;
+    Vec fowDis;
+    Vec sideDis;
+    Vec cameraRight;
+    
+    float range = 2.0f;
+    
+    
+    for(int i = 0; i < nEnemies;i++)
+    {
+        vecScale(g.cameraFront,5.0f,fowDis);
+        vecAdd(g.cameraPos,fowDis ,enemyPos);
+        vecCrossProduct(g.cameraUp,g.cameraFront,cameraRight);
+        vecScale(cameraRight,(((range/(float)nEnemies)*(float)i) -(range /2.0f)),fowDis);
+        vecAdd(enemyPos,fowDis ,enemyPos);
+        debugEnemy[i] = new Enemy(enemyPos,true);
+    }
 
+    
+}
 void TypeDebug()
 {
-
+    int curEnemies = 0;
 	static int firstRun = 1;
 	if(firstRun)
 	{
-		for(int i = 0; i < nEnemies;i++)
-		{
-			debugEnemy[i] = new Enemy();
-		}
-        g.targetCameraYaw = 'n';
-	}
+        Vec enemyPos;
+    Vec fowDis;
+    vecScale(g.cameraFront,5.0f,fowDis);
+    vecAdd(g.cameraPos,fowDis ,enemyPos);
+        for(int i = 0; i < nEnemies;i++)
+    {
+        debugEnemy[i] = new Enemy(enemyPos,false);
+    }
+    }
 	firstRun = 0;
 	static string rWord = g.myDictionary.getRandomWord();
 	rWord = g.myDictionary.getRandomWord();
@@ -1490,17 +1550,25 @@ void TypeDebug()
 
 	    if(debugEnemy[i]->checkMatch(g.textbox))
 	    {
-		debugEnemy[i] = new Enemy();
+		debugEnemy[i]->setActive(0);
 		stack<char> emptyText;
 		currentText =  emptyText;
 	    }
-	    //cout << g.textbox << endl;
-	  //  cout << debugEnemy[i]->word << endl;
+	   
+        if(debugEnemy[i]->getActive())
+        {
+            curEnemies+=1;
+        }
+
 	    if (!g.pause) {
 		debugEnemy[i]->update();
 	    }
 	    debugEnemy[i]->draw();
 	}
+   
+    
+
+    
 
 	drawMap();
 
@@ -1545,7 +1613,7 @@ void TypeDebug()
 	//glPopMatrix();
     glPopMatrix();
     
-    if (!g.pause) {
+    if (!g.pause && !g.inBattle) {
         checkCameraTurn();
     }
     
@@ -1556,9 +1624,15 @@ void TypeDebug()
         g.targetCameraYaw = dir[rand() % 4];
     }
 */
-
-    if(!g.pause && !g.cameraBusy)
+    if(curEnemies == 0)
     {
+        g.inBattle = 0;
+
+    }
+
+    if(!g.pause && !g.cameraBusy && !g.inBattle)
+    {
+
         static float distance = 0;
         const float err =0.1f;
         Vec cfuTemp; //camera front updated temp
@@ -1568,16 +1642,16 @@ void TypeDebug()
         distance+=g.moveSpeed;
         if(distance <= 4.0f+err && distance >=4.0f-err)
         {
-            g.targetCameraYaw = cur;
+            spawnEnemies();
+            g.targetCameraYaw = cur;   
             printf("turning %c",g.targetCameraYaw);
             g.currentStep++;
             distance=0;
         }
         fflush(stdout);
-    }
-
-
-
+        
+    }    
+    
 }
 void DrawGame()
 {
