@@ -214,25 +214,27 @@ class Global {
         
 
         char targetCameraYaw;
-        int cameraTurnSpeed;
+        float cameraTurnSpeed;
         bool cameraBusy;
 
         int currentStep;
         char steps[500] = {};
-        float moveSpeed = 0.2f;
+        float moveSpeed = 6.0f;
 
         Dictionary myDictionary;
         string textbox;
 
         int typeMode;
         int inBattle;
+        //music Ids
         int titleMusic;
         int gameMusic;
         int pauseMusic;
+        int deathMusic;
 
         Global() {
             currentStep = 0;
-            cameraTurnSpeed = 5;
+            cameraTurnSpeed = 150.0f;
             targetCameraYaw = ' ';
             yaw = 0.0f;
             pitch = 0.0f;
@@ -256,6 +258,7 @@ class Global {
             titleMusic = sound.loadWav("737engine.wav", true, 1.0f, 1.0f);
             gameMusic = titleMusic;
             pauseMusic = sound.loadWav("pauseMusic.wav", true, 1.0f, 1.0f);
+            deathMusic = sound.loadWav("deathSound.wav", false, 1.0f, 1.0f);
             
             GLfloat la[]  = {  0.0f, 0.0f, 0.0f, 1.0f };
             GLfloat ld[]  = {  1.0f, 1.0f, 1.0f, 1.0f };
@@ -502,6 +505,11 @@ void check_mouse(XEvent *e);
 int check_keys(XEvent *e);
 void physics(void);
 void render(void);
+void updateCameraFront();
+void updateLesson1(float dt);
+void updateLesson2(float dt);
+void updateScriptedCameraTurn(float dt);
+void updateAutoNavigation(float dt);
 
 int main(void)
 {
@@ -902,6 +910,8 @@ int check_keys(XEvent *e)
 
     if(!g.typeMode)
     {
+        updateCameraFront();
+        const float keyMoveStep = g.moveSpeed * (float)physicsRate;
         switch(key) {
             case XK_1:
                 g.lesson_num = 1;
@@ -948,44 +958,50 @@ int check_keys(XEvent *e)
                 break;
             case XK_Up:
                 Vec cfuTemp;
-                vecScale(g.cameraFront,g.moveSpeed,cfuTemp);
+                vecScale(g.cameraFront,keyMoveStep,cfuTemp);
                 vecAdd(g.cameraPos,cfuTemp,g.cameraPos);
                 break;
             case XK_Down:
                 Vec cfdTemp;
-                vecScale(g.cameraFront,g.moveSpeed,cfdTemp);
+                vecScale(g.cameraFront,keyMoveStep,cfdTemp);
                 vecSub(g.cameraPos,cfdTemp,g.cameraPos);
                 break;
             case XK_Left:
                 Vec crossTempL;
                 vecCrossProduct(g.cameraFront,g.cameraUp,crossTempL);
                 vecNormalize(crossTempL);
+                vecScale(crossTempL,keyMoveStep,crossTempL);
                 vecSub(g.cameraPos,crossTempL,g.cameraPos);
                 break;
             case XK_Right:
                 Vec crossTempR;
                 vecCrossProduct(g.cameraFront,g.cameraUp,crossTempR);
                 vecNormalize(crossTempR);
+                vecScale(crossTempR,keyMoveStep,crossTempR);
                 vecAdd(g.cameraPos,crossTempR,g.cameraPos);
                 break;
             case XK_o:
                 //g.cy -=1;
                 g.yaw-=1;
                 g.targetCameraYaw = ' ';
+                updateCameraFront();
                 printf("%f, ",g.cameraFront[0]);
                 printf("%f\n",g.cameraFront[2]);
                 break;
             case XK_p:
                 g.yaw+=1;
                 g.targetCameraYaw = ' ';
+                updateCameraFront();
                 printf("%f, ",g.cameraFront[0]);
                 printf("%f\n",g.cameraFront[2]);
                 break;
             case XK_k:
                 g.pitch +=1;
+                updateCameraFront();
                 break;
             case XK_j:
                 g.pitch -=1;
+                updateCameraFront();
                 break;
             case XK_u:
                 g.cameraPos[1] +=1;
@@ -1022,7 +1038,16 @@ int check_keys(XEvent *e)
 
 
 
-void checkCameraTurn()
+void updateCameraFront()
+{
+    g.cameraFront[0] = cos(g.yaw * (2.0f * (PI /180.0f))) *
+        cos(g.pitch * (2.0f * (PI/180.0f)));
+    g.cameraFront[1] = sin(g.pitch * (2.0f * (PI/180.0f)));
+    g.cameraFront[2] = sin(g.yaw * (2.0f * (PI /180.0f))) *
+        cos(g.pitch * (2.0f * (PI/180.0f)));
+}
+
+void updateScriptedCameraTurn(float dt)
 {   
 
 
@@ -1047,7 +1072,12 @@ void checkCameraTurn()
 
     }
 
-    if(g.yaw < target+ g.cameraTurnSpeed && g.yaw > target - g.cameraTurnSpeed)
+    float turnStep = g.cameraTurnSpeed * dt;
+    if (turnStep <= 0.0f) {
+        turnStep = 0.001f;
+    }
+
+    if(g.yaw < target + turnStep && g.yaw > target - turnStep)
     {
         g.cameraBusy = false;
         g.yaw = target;
@@ -1057,11 +1087,11 @@ void checkCameraTurn()
         g.cameraBusy = true;
         if(target < g.yaw)
         {
-            g.yaw -= g.cameraTurnSpeed;
+            g.yaw -= turnStep;
         }
         if(target > g.yaw)
         {
-            g.yaw+= g.cameraTurnSpeed;
+            g.yaw += turnStep;
         }
 
 
@@ -1074,7 +1104,7 @@ class Enemy
         
         Vec tpos;
         Vec pos;
-        int speed;
+        float speed;
         int numCorrect;
         int textureIndex;
         int isActive;
@@ -1094,18 +1124,11 @@ class Enemy
             tpos[0] = rand() % (g.xres - 30);
             tpos[1] = rand() % (g.yres - 30);
             
-            speed = 2;
+            speed = 0.6f;
             pos[0] = in_pos[0];
             pos[1] = in_pos[1];
             pos[2] = in_pos[2];
-
             isActive = in_isActive;
-          
-            // pos[0] = rand() % 500;
-            // pos[0] = float(pos[0]) / 100;
-            // pos[1] = 0;
-            // pos[2] = rand() % 500;
-            // pos[2] = float(pos[2]) / 100;
             textureIndex = rand() % enemies.size();
           
           //pos[0] = 0;
@@ -1114,7 +1137,7 @@ class Enemy
             numCorrect = 0;
             cout << pos[0] << ", " << pos[1] << ", " << pos[2] << endl;
         }
-        void update()
+        void update(float dt)
         {
             if(isActive)
             {
@@ -1122,7 +1145,7 @@ class Enemy
                 vecMake(g.cameraPos[0],g.cameraPos[1],g.cameraPos[2],playerDir);
                 vecSub(g.cameraPos,pos,playerDir);
                 vecNormalize(playerDir);
-                vecScale(playerDir, speed * 0.005f,playerDir);
+                vecScale(playerDir, speed * dt, playerDir);
                 vecAdd(pos,playerDir,pos);
                 numCorrect = 0;
                 for(int i = 0; i < (int)g.textbox.length();i++)
@@ -1140,8 +1163,11 @@ class Enemy
 
         void setActive(int in_isActive)
         {
-            if(in_isActive == 0)
+            if(in_isActive == 0 && isActive)
+            {
+                g.sound.play(g.deathMusic);
                 isActive = 0;
+            }
             if(in_isActive == 1)
                 isActive = 1;
         }
@@ -1343,6 +1369,11 @@ class Enemy
 		else 
 			return false;
 	}
+    ~Enemy() {
+        if (isActive) {
+            g.sound.play(g.deathMusic);
+        }
+    }
 };
 
 
@@ -1480,9 +1511,9 @@ void spawnEnemies()
 {   
     g.inBattle = 1;
     g.cameraBusy = 1;
+    updateCameraFront();
     Vec enemyPos;
     Vec fowDis;
-    Vec sideDis;
     Vec cameraRight;
     
     float range = 2.0f;
@@ -1495,6 +1526,7 @@ void spawnEnemies()
         vecCrossProduct(g.cameraUp,g.cameraFront,cameraRight);
         vecScale(cameraRight,(((range/(float)nEnemies)*(float)i) -(range /2.0f)),fowDis);
         vecAdd(enemyPos,fowDis ,enemyPos);
+        delete debugEnemy[i];
         debugEnemy[i] = new Enemy(enemyPos,true);
     }
 
@@ -1506,14 +1538,15 @@ void TypeDebug()
 	static int firstRun = 1;
 	if(firstRun)
 	{
+        updateCameraFront();
         Vec enemyPos;
-    Vec fowDis;
-    vecScale(g.cameraFront,5.0f,fowDis);
-    vecAdd(g.cameraPos,fowDis ,enemyPos);
+        Vec fowDis;
+        vecScale(g.cameraFront,5.0f,fowDis);
+        vecAdd(g.cameraPos,fowDis ,enemyPos);
         for(int i = 0; i < nEnemies;i++)
-    {
-        debugEnemy[i] = new Enemy(enemyPos,false);
-    }
+        {
+            debugEnemy[i] = new Enemy(enemyPos,false);
+        }
     }
 	firstRun = 0;
 	static string rWord = g.myDictionary.getRandomWord();
@@ -1560,9 +1593,6 @@ void TypeDebug()
             curEnemies+=1;
         }
 
-	    if (!g.pause) {
-		debugEnemy[i]->update();
-	    }
 	    debugEnemy[i]->draw();
 	}
    
@@ -1613,45 +1643,10 @@ void TypeDebug()
 	//glPopMatrix();
     glPopMatrix();
     
-    if (!g.pause && !g.inBattle) {
-        checkCameraTurn();
-    }
-    
-    /*
-    if(!g.cameraBusy)
-    {        
-        char dir[4] = {'n','s','e','w'};
-        g.targetCameraYaw = dir[rand() % 4];
-    }
-*/
     if(curEnemies == 0)
     {
         g.inBattle = 0;
-
     }
-
-    if(!g.pause && !g.cameraBusy && !g.inBattle)
-    {
-
-        static float distance = 0;
-        const float err =0.1f;
-        Vec cfuTemp; //camera front updated temp
-        vecScale(g.cameraFront,g.moveSpeed,cfuTemp);
-        vecAdd(g.cameraPos,cfuTemp,g.cameraPos);
-        char cur = g.steps[g.currentStep];
-        distance+=g.moveSpeed;
-        if(distance <= 4.0f+err && distance >=4.0f-err)
-        {
-            spawnEnemies();
-            g.targetCameraYaw = cur;   
-            printf("turning %c",g.targetCameraYaw);
-            g.currentStep++;
-            distance=0;
-        }
-        fflush(stdout);
-        
-    }    
-    
 }
 void DrawGame()
 {
@@ -1682,7 +1677,6 @@ void DrawGame()
 
 
     createTile(0,0,0,true,true,true,true);
-    checkCameraTurn();
     /*
        if(!g.cameraBusy)
        {
@@ -1923,7 +1917,70 @@ void DrawGLSkybox()
 }
 
 
-void physics(void) { }
+void updateLesson1(float dt)
+{
+    updateCameraFront();
+    if (g.inBattle) {
+        for (int i = 0; i < nEnemies; i++) {
+            if (debugEnemy[i]) {
+                debugEnemy[i]->update(dt);
+            }
+        }
+        return;
+    }
+    updateAutoNavigation(dt);
+}
+
+void updateAutoNavigation(float dt)
+{
+    static float distance = 0.0f;
+    const float moveStep = g.moveSpeed * dt;
+    const float err = 0.1f;
+
+    updateScriptedCameraTurn(dt);
+    updateCameraFront();
+
+    if (!g.cameraBusy) {
+        Vec cfuTemp;
+        vecScale(g.cameraFront, moveStep, cfuTemp);
+        vecAdd(g.cameraPos, cfuTemp, g.cameraPos);
+        distance += moveStep;
+
+        if (g.currentStep < 500 &&
+                distance <= 4.0f + err && distance >= 4.0f - err) {
+            if (g.lesson_num == 1) {
+                spawnEnemies();
+            }
+            g.targetCameraYaw = g.steps[g.currentStep];
+            printf("turning %c", g.targetCameraYaw);
+            g.currentStep++;
+            distance = 0.0f;
+            fflush(stdout);
+        }
+    }
+}
+
+void updateLesson2(float dt)
+{
+    updateAutoNavigation(dt);
+}
+
+void physics(void)
+{
+    const float dt = (float)physicsRate;
+//    cout << g.lesson_num << endl;
+    switch (g.lesson_num) {
+        case 1:
+            updateLesson1(dt);
+            break;
+        case 2:
+            updateLesson2(dt);
+            break;
+        default:
+            updateCameraFront();
+            break;
+    }
+}
 
 void render(void)
 {
@@ -1947,9 +2004,7 @@ void render(void)
 
 
     //
-    g.cameraFront[0] = cos(g.yaw * (2.0f * (PI /180.0f))) * cos(g.pitch * (2.0f * (PI/180.0f)));
-    g.cameraFront[1] = sin( g.pitch * (2.0f * (PI/180.0f)));
-    g.cameraFront[2] = sin(g.yaw * (2.0f * (PI /180.0f))) * cos(g.pitch * (2.0f * (PI/180.0f)));
+    updateCameraFront();
     Vec added;
     vecAdd(g.cameraPos,g.cameraFront,added);
     gluLookAt((double)g.cameraPos[0],(double)g.cameraPos[1],(double)g.cameraPos[2],  (double)added[0],(double)added[1],(double)added[2],(double)g.cameraUp[0],(double)g.cameraUp[1],(double)g.cameraUp[2]);
