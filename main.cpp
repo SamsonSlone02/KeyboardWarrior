@@ -1124,7 +1124,7 @@ class Enemy
             tpos[0] = rand() % (g.xres - 30);
             tpos[1] = rand() % (g.yres - 30);
             
-            speed = 2.0f;
+            speed = 0.6f;
             pos[0] = in_pos[0];
             pos[1] = in_pos[1];
             pos[2] = in_pos[2];
