@@ -1035,7 +1035,7 @@ int check_keys(XEvent *e)
                 break;
         }
     }
-    else
+    else if(g.inBattle)
     {
         if(key >= 97 && key <= 122) // a-z
             if(isValidChar((char)key))
@@ -1124,9 +1124,6 @@ void updateScriptedCameraTurn(float dt)
     }
 }
 
-
-
-
 class Enemy
 {
     private:
@@ -1164,7 +1161,7 @@ class Enemy
           //pos[1] = 0;
           //pos[2] = 0;
             numCorrect = 0;
-            cout << pos[0] << ", " << pos[1] << ", " << pos[2] << endl;
+           // cout << pos[0] << ", " << pos[1] << ", " << pos[2] << endl;
         }
         void update(float dt)
         {
@@ -1193,7 +1190,7 @@ class Enemy
 
                 //calculate distance between player and enemy
                 float dist = sqrt(((x2 - x) * (x2 - x)) + ((y2- y) * (y2- y)));
-                cout << dist << endl;
+                //cout << dist << endl;
 
                 if(dist <= 0.5)
                 {
@@ -1397,7 +1394,7 @@ class Enemy
 
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
-		gluPerspective(90.0f,(GLfloat)g.xres/(GLfloat)g.yres,0.1f,100.0f);
+		gluPerspective(70.0f,(GLfloat)g.xres/(GLfloat)g.yres,0.1f,100.0f);
 		glMatrixMode(GL_MODELVIEW);
 		glEnable(GL_COLOR_MATERIAL);
 		glEnable(GL_LIGHTING);
@@ -1554,7 +1551,7 @@ void drawMap()
     }
 }
 
-const int nEnemies = 5;
+const int nEnemies = 3;
 Enemy * debugEnemy[nEnemies];
 void spawnEnemies()
 {   
@@ -1705,6 +1702,8 @@ void TypeDebug()
     if(curEnemies == 0)
     {
         g.inBattle = 0;
+        stack<char> emptyText;
+        currentText = emptyText;
     }
 }
 void DrawGame()
@@ -2121,7 +2120,8 @@ bool isValidChar(char x)
         cout << "attempting " << tempString << endl;
     for(int i = 0; i < nEnemies;i++)
     {
-        
+        if(!debugEnemy[i]->getActive())
+            continue;
         tempEnemyString = debugEnemy[i]->getWord();
         tempEnemyString  = string_view(tempEnemyString).substr(0,tempStringSize + 1);
         cout << "against " << tempEnemyString << endl; 
