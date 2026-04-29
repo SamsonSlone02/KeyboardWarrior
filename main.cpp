@@ -198,6 +198,11 @@ class Global {
         int pause;
         GameSound sound;
 
+        float curDiff = 1;
+        float diffScalar = 0.025f;
+
+        int curScore = 0;
+
         int keys[65536];
 
         Flt yaw;
@@ -226,6 +231,7 @@ class Global {
 
         int typeMode;
         int inBattle;
+        int gameOver;
         //music Ids
         int titleMusic;
         int gameMusic;
@@ -240,6 +246,7 @@ class Global {
             pitch = 0.0f;
             typeMode = 0;
             inBattle = 0;
+            gameOver = 0;
             vecMake(0.0f,1.0f,0.0f,cameraUp);
             vecMake(0.0f,0.0f,0.0f,cameraPos);
             vecMake(0.0f,0.0f,-1.0f,cameraFront);
@@ -522,6 +529,7 @@ void updateLesson1(float dt);
 void updateLesson2(float dt);
 void updateScriptedCameraTurn(float dt);
 void updateAutoNavigation(float dt);
+bool isValidChar(char x);
 
 int main(void)
 {
@@ -559,7 +567,7 @@ int main(void)
         statsCountdown += timeSpan;
 
 		while(physicsCountdown >= physicsRate) {
-            if (!g.pause) {
+            if (!g.pause && !g.gameOver) {
                 physics();
             }
             ++physicsFrames;
@@ -1030,7 +1038,9 @@ int check_keys(XEvent *e)
     else
     {
         if(key >= 97 && key <= 122) // a-z
-            currentText.push((char)key);
+            if(isValidChar((char)key))
+                currentText.push((char)key);
+            
         if(key == 32)  //space
             currentText.push(' ');   
         if(key == XK_Escape)  //escape
@@ -1040,7 +1050,11 @@ int check_keys(XEvent *e)
         }   
         if(key == XK_BackSpace) //backspace
             if(!currentText.empty())
-                currentText.pop();
+            {
+                stack<char> emptyText;
+		        currentText =  emptyText;
+            }
+                // currentText.pop();
         if(key == 48) //idek, i though this was backspace but i guess not
             if(!currentText.empty())
                 currentText.pop();
@@ -1110,6 +1124,9 @@ void updateScriptedCameraTurn(float dt)
     }
 }
 
+
+
+
 class Enemy
 {
     private:
@@ -1157,7 +1174,7 @@ class Enemy
                 vecMake(g.cameraPos[0],g.cameraPos[1],g.cameraPos[2],playerDir);
                 vecSub(g.cameraPos,pos,playerDir);
                 vecNormalize(playerDir);
-                vecScale(playerDir, speed * dt, playerDir);
+                vecScale(playerDir, speed * dt * g.curDiff, playerDir);
                 vecAdd(pos,playerDir,pos);
                 numCorrect = 0;
                 for(int i = 0; i < (int)g.textbox.length();i++)
@@ -1166,6 +1183,23 @@ class Enemy
                         break;
                     numCorrect = i + 1;
                 }
+
+                //enemy coor
+                float x = pos[0];
+                float y = pos[2];
+                //player coor
+                float x2 = g.cameraPos[0];
+                float y2 = g.cameraPos[2];
+
+                //calculate distance between player and enemy
+                float dist = sqrt(((x2 - x) * (x2 - x)) + ((y2- y) * (y2- y)));
+                cout << dist << endl;
+
+                if(dist <= 0.5)
+                {
+                    g.gameOver = 1;
+                }
+
             }
         }
         int getActive()
@@ -1345,7 +1379,7 @@ class Enemy
 	void draw()
 	{
 		glPushMatrix();
-		Rect r;
+		//Rect r;
 		glEnable(GL_TEXTURE_2D);
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
@@ -1353,10 +1387,10 @@ class Enemy
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 		glDisable(GL_LIGHTING);
-		r.bot = tpos[1];
-		r.left = tpos[0];
-		r.center = 0;
-		ggprint8b(&r, 16, 0x00990000, "%s",word.c_str());
+		// r.bot = tpos[1];
+		// r.left = tpos[0];
+		// r.center = 0;
+		// ggprint8b(&r, 16, 0x00990000, "%s",word.c_str());
 		glPopMatrix();
 
 
@@ -1555,6 +1589,8 @@ void spawnEnemies()
 void TypeDebug()
 {
     int curEnemies = 0;
+    
+
 	static int firstRun = 1;
 	if(firstRun)
 	{
@@ -1603,9 +1639,10 @@ void TypeDebug()
 
 	    if(debugEnemy[i]->checkMatch(g.textbox))
 	    {
-		debugEnemy[i]->setActive(0);
-		stack<char> emptyText;
-		currentText =  emptyText;
+            g.curScore += currentText.size() * g.curDiff;
+		    debugEnemy[i]->setActive(0);
+		    stack<char> emptyText;
+		    currentText =  emptyText;
 	    }
 	   
         if(debugEnemy[i]->getActive())
@@ -1632,11 +1669,13 @@ void TypeDebug()
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	glDisable(GL_LIGHTING);
-	r.bot = 0;
+	r.bot = 50;
 	r.left = 0;
 	r.center = 0;
 	ggprint8b(&r, 16, 0x00990000, "%s",g.textbox.c_str());
-
+    r.left = g.xres/5;
+    ggprint8b(&r, 16, 0x00990000, "%s",to_string(g.curScore).c_str());
+    ggprint8b(&r, 16, 0x00990000, "%s",to_string(g.curDiff).c_str());
     //glPushMatrix();
     glColor3ub(255,255,255);
     //glTranslatef(x+1.5f,y+1.0f,z-5.0f);
@@ -1939,6 +1978,7 @@ void DrawGLSkybox()
 
 void updateLesson1(float dt)
 {
+    g.curDiff += g.diffScalar * dt;
     updateCameraFront();
     if (g.inBattle) {
         for (int i = 0; i < nEnemies; i++) {
@@ -2028,9 +2068,14 @@ void render(void)
     Vec added;
     vecAdd(g.cameraPos,g.cameraFront,added);
     gluLookAt((double)g.cameraPos[0],(double)g.cameraPos[1],(double)g.cameraPos[2],  (double)added[0],(double)added[1],(double)added[2],(double)g.cameraUp[0],(double)g.cameraUp[1],(double)g.cameraUp[2]);
+    
     switch (g.lesson_num) {
         case 0:break;              
-        case 1: TypeDebug(); break;
+        case 1: 
+            if(!g.gameOver)
+                TypeDebug();
+            else g.lesson_num = 2;
+            break;
         case 2: DrawGame(); break;
 
     }
@@ -2059,4 +2104,31 @@ void render(void)
     if (g.pause) {
         showPauseScreen();
     }
+}
+
+bool isValidChar(char x)
+{
+    string tempString = g.textbox;
+    tempString+=x;
+    int tempStringSize = g.textbox.length();
+    string tempEnemyString;
+    
+    string temp;
+    for(int i = 0; i < (int)tempString.length();i++)
+        {
+            tempString[i] = toupper(tempString[i]);
+        }
+        cout << "attempting " << tempString << endl;
+    for(int i = 0; i < nEnemies;i++)
+    {
+        
+        tempEnemyString = debugEnemy[i]->getWord();
+        tempEnemyString  = string_view(tempEnemyString).substr(0,tempStringSize + 1);
+        cout << "against " << tempEnemyString << endl; 
+        string upperString;
+        if(tempString == tempEnemyString)
+            return true;
+    }
+    return false;
+
 }
