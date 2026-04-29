@@ -1247,6 +1247,13 @@ class Enemy
         {
             isRunner = 1;
         }
+        bool getRunner()
+        {
+            if(isRunner)
+                return true;
+            else return false;
+
+        }
         void setTextHeight(float y)
         {
             tpos[1] = y;
@@ -1682,7 +1689,10 @@ void TypeDebug()
 
 	    if(debugEnemy[i]->checkMatch(g.textbox))
 	    {
-            g.curScore += currentText.size() * g.curDiff;
+            if(debugEnemy[i]->getRunner())
+                g.curScore += currentText.size() * g.curDiff * 2;
+            else
+                g.curScore += currentText.size() * g.curDiff;
 		    debugEnemy[i]->setActive(0);
 		    stack<char> emptyText;
 		    currentText =  emptyText;
