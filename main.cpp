@@ -230,7 +230,7 @@ class Global {
         int titleMusic;
         int gameMusic;
         int pauseMusic;
-        int deathMusic;
+        std::vector<int> deathSounds;
 
         Global() {
             currentStep = 0;
@@ -258,7 +258,10 @@ class Global {
             titleMusic = sound.loadWav("737engine.wav", true, 1.0f, 1.0f);
             gameMusic = titleMusic;
             pauseMusic = sound.loadWav("pauseMusic.wav", true, 1.0f, 1.0f);
-            deathMusic = sound.loadWav("deathSound.wav", false, 1.0f, 1.0f);
+            deathSounds.push_back(
+                sound.loadWav("deathSound.wav", false, 1.0f, 1.0f));
+            deathSounds.push_back(
+                sound.loadWav("deathSound2.wav", false, 1.0f, 1.0f));
             
             GLfloat la[]  = {  0.0f, 0.0f, 0.0f, 1.0f };
             GLfloat ld[]  = {  1.0f, 1.0f, 1.0f, 1.0f };
@@ -360,6 +363,15 @@ class Global {
             delete[] enemyTex;
         }
 } g;
+
+void playRandomDeathSound()
+{
+    if (g.deathSounds.empty()) {
+        return;
+    }
+    int soundIndex = rand() % g.deathSounds.size();
+    g.sound.play(g.deathSounds[soundIndex]);
+}
 
 //X11 functions
 class X11_wrapper {
@@ -1165,7 +1177,7 @@ class Enemy
         {
             if(in_isActive == 0 && isActive)
             {
-                g.sound.play(g.deathMusic);
+                playRandomDeathSound();
                 isActive = 0;
             }
             if(in_isActive == 1)
@@ -1371,7 +1383,7 @@ class Enemy
 	}
     ~Enemy() {
         if (isActive) {
-            g.sound.play(g.deathMusic);
+            playRandomDeathSound();
         }
     }
 };
