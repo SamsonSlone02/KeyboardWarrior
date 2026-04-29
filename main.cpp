@@ -138,7 +138,7 @@ public:
                         unlink(newfile);
         }
 
-}; Image img[7] = {"wall.png","carpet.png","sky4.jpg","ascii.png","selfie_cat.png","ceiling.png","weapon.png"};
+}; Image img[7] = {"wall.png","carpet.png","sky4.jpg","ascii.png","./enemies/selfie_cat.png","ceiling.png","weapon.png"};
 //Image enemies[] = {"enemy.png", "enemy2.png"};
 //const int enemyTextureCount = sizeof(enemies) / sizeof(enemies[0]);
 
@@ -229,6 +229,7 @@ class Global {
         int currentStep;
         char steps[500] = {};
         float moveSpeed = 6.0f;
+        float autoMoveDistance;
 
         Dictionary myDictionary;
         string textbox;
@@ -252,6 +253,7 @@ class Global {
             inBattle = 0;
             gameOver = 0;
             wobbleUp = 0;
+            autoMoveDistance = 0.0f;
             
             vecMake(0.0f,1.0f,0.0f,cameraUp);
             vecMake(0.0f,0.0f,0.0f,cameraPos);
@@ -540,6 +542,9 @@ void updateLesson1(float dt);
 void updateLesson2(float dt);
 void updateScriptedCameraTurn(float dt);
 void updateAutoNavigation(float dt);
+void showGameOverScreen();
+void initializeDebugEnemies();
+void restartGame();
 bool isValidChar(char x);
 
 int main(void)
@@ -922,6 +927,13 @@ int check_keys(XEvent *e)
 
     if (e->type == KeyRelease) {
         g.keys[key] = false;
+        return 0;
+    }
+
+    if (g.gameOver) {
+        if (key == XK_Return || key == XK_KP_Enter) {
+            restartGame();
+        }
         return 0;
     }
 
@@ -1456,9 +1468,6 @@ class Enemy
 			return false;
 	}
     ~Enemy() {
-        if (isActive) {
-            playRandomDeathSound();
-        }
     }
 };
 
@@ -1593,6 +1602,47 @@ void drawMap()
 
 const int nEnemies = 3;
 Enemy * debugEnemy[nEnemies];
+void initializeDebugEnemies()
+{
+    updateCameraFront();
+    Vec enemyPos;
+    Vec fowDis;
+    vecScale(g.cameraFront,5.0f,fowDis);
+    vecAdd(g.cameraPos,fowDis,enemyPos);
+    for(int i = 0; i < nEnemies; i++)
+    {
+        delete debugEnemy[i];
+        debugEnemy[i] = new Enemy(enemyPos,false);
+    }
+}
+
+void restartGame()
+{
+    g.pause = 0;
+    g.typeMode = 0;
+    g.inBattle = 0;
+    g.gameOver = 0;
+    g.curScore = 0;
+    g.curDiff = 1.0f;
+    g.wobbleUp = 0;
+    g.cameraWobble = 0.0f;
+    vecMake(0.0f,0.0f,0.0f,g.cameraPos);
+    g.cameraWobbleFloor = g.cameraPos[1] - 0.1f;
+    g.cameraWobbleCeil = g.cameraPos[1] + 0.1f;
+    g.yaw = 0.0f;
+    g.pitch = 0.0f;
+    g.currentStep = 1;
+    g.autoMoveDistance = 0.0f;
+    g.targetCameraYaw = g.steps[0];
+    g.cameraBusy = false;
+    g.lesson_num = 1;
+    updateCameraFront();
+    stack<char> emptyText;
+    currentText = emptyText;
+    g.textbox.clear();
+    initializeDebugEnemies();
+}
+
 void spawnEnemies()
 {   
     g.inBattle = 1;
@@ -1639,22 +1689,9 @@ void spawnEnemies()
 void TypeDebug()
 {
     int curEnemies = 0;
-    
-
-	static int firstRun = 1;
-	if(firstRun)
-	{
-        updateCameraFront();
-        Vec enemyPos;
-        Vec fowDis;
-        vecScale(g.cameraFront,5.0f,fowDis);
-        vecAdd(g.cameraPos,fowDis ,enemyPos);
-        for(int i = 0; i < nEnemies;i++)
-        {
-            debugEnemy[i] = new Enemy(enemyPos,false);
-        }
+    if (!debugEnemy[0]) {
+        initializeDebugEnemies();
     }
-	firstRun = 0;
 	static string rWord = g.myDictionary.getRandomWord();
 	rWord = g.myDictionary.getRandomWord();
 	//g.targetCameraYaw = ' ';
@@ -2048,7 +2085,6 @@ void updateLesson1(float dt)
 
 void updateAutoNavigation(float dt)
 {
-    static float distance = 0.0f;
     const float moveStep = g.moveSpeed * dt;
     const float err = 0.1f;
 
@@ -2059,7 +2095,7 @@ void updateAutoNavigation(float dt)
         Vec cfuTemp;
         vecScale(g.cameraFront, moveStep, cfuTemp);
         vecAdd(g.cameraPos, cfuTemp, g.cameraPos);
-        distance += moveStep;
+        g.autoMoveDistance += moveStep;
         
         if(g.wobbleUp)
         {
@@ -2078,14 +2114,15 @@ void updateAutoNavigation(float dt)
 
 
         if (g.currentStep < 500 &&
-                distance <= 4.0f + err && distance >= 4.0f - err) {
+                g.autoMoveDistance <= 4.0f + err &&
+                g.autoMoveDistance >= 4.0f - err) {
             if (g.lesson_num == 1) {
                 spawnEnemies();
             }
             g.targetCameraYaw = g.steps[g.currentStep];
             printf("turning %c", g.targetCameraYaw);
             g.currentStep++;
-            distance = 0.0f;
+            g.autoMoveDistance = 0.0f;
             fflush(stdout);
             
         }
@@ -2146,10 +2183,8 @@ void render(void)
     
     switch (g.lesson_num) {
         case 0:break;              
-        case 1: 
-            if(!g.gameOver)
-                TypeDebug();
-            else g.lesson_num = 2;
+        case 1:
+            TypeDebug();
             break;
         case 2: DrawGame(); break;
 
@@ -2176,9 +2211,64 @@ void render(void)
     ggprint8b(&r, 16, 0x008877aa, "J,K - TILT UP,TILT DOWN");
     ggprint8b(&r, 16, 0x008877aa, "SHIFT+P - PAUSE");
     ggprint8b(&r, 16, 0x00ffff00, "FPS: %d", displayedFPS);
+    if (g.gameOver) {
+        showGameOverScreen();
+    }
     if (g.pause) {
         showPauseScreen();
     }
+}
+
+void showGameOverScreen()
+{
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, g.xres, 0, g.yres, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glColor4f(0.0f, 0.0f, 0.0f, 0.75f);
+    glBegin(GL_QUADS);
+        glVertex2f(0, 0);
+        glVertex2f(g.xres, 0);
+        glVertex2f(g.xres, g.yres);
+        glVertex2f(0, g.yres);
+    glEnd();
+
+    glEnable(GL_TEXTURE_2D);
+
+    Rect r;
+    r.center = 0;
+    r.bot = g.yres / 2 + 30;
+    r.left = g.xres / 2 - 70;
+    ggprint16(&r, 16, 0x00ffffff, "GAME OVER");
+
+    r.bot = g.yres / 2;
+    r.left = g.xres / 2 - 32;
+    ggprint8b(&r, 16, 0x00ffffff, "Score: %d", g.curScore);
+
+    r.bot = g.yres / 2 - 30;
+    r.left = g.xres / 2 - 72;
+    ggprint8b(&r, 16, 0x00ffffff, "Press Enter to restart");
+
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
 }
 
 bool isValidChar(char x)
