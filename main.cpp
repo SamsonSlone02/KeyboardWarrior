@@ -199,7 +199,7 @@ class Global {
         GameSound sound;
 
         float curDiff = 1;
-        float diffScalar = 0.025f;
+        float diffScalar = 0.050f;
 
         int curScore = 0;
 
@@ -210,6 +210,10 @@ class Global {
         Vec cameraUp;
         Vec cameraPos;
         Vec cameraFront;
+        float cameraWobble;
+        float cameraWobbleCeil;
+        float cameraWobbleFloor;
+        int wobbleUp;
 
 
         int mazeHeight;
@@ -247,13 +251,20 @@ class Global {
             typeMode = 0;
             inBattle = 0;
             gameOver = 0;
+            wobbleUp = 0;
+            
             vecMake(0.0f,1.0f,0.0f,cameraUp);
             vecMake(0.0f,0.0f,0.0f,cameraPos);
             vecMake(0.0f,0.0f,-1.0f,cameraFront);
+
+            cameraWobbleFloor =cameraPos[1] -  0.1f;
+            cameraWobbleCeil = cameraPos[1] +  0.1f;
             srand(time(NULL));
             pause = 0;
             xres = 640;
             yres = 480;
+
+            
 
             mazeHeight = 30;
             mazeWidth = 30;
@@ -1134,6 +1145,10 @@ class Enemy
         int numCorrect;
         int textureIndex;
         int isActive;
+        int isRunner;
+        float runMultiplier;
+        float speedVariation;
+
         
         // Texure texture;
     public:
@@ -1143,8 +1158,14 @@ class Enemy
         Enemy(Vec in_pos, int in_isActive)
         {
             //   texture;
-            //srand(time(NULL));
-
+            
+            isRunner = 0;
+            runMultiplier = 3.0f;
+            speedVariation =1.0f + (float)(rand() % 10) / 100.0f;
+            //speed = speed / speedVariation;
+            //speedVariation /= speedVariation; //num between -1 and 1
+            
+            
 
             word = g.myDictionary.getRandomWord();
             tpos[0] = rand() % (g.xres - 30);
@@ -1157,6 +1178,8 @@ class Enemy
             isActive = in_isActive;
             textureIndex = rand() % enemies.size();
           
+            //cout << speed  << " " << speedVariation<<  endl;
+
           //pos[0] = 0;
           //pos[1] = 0;
           //pos[2] = 0;
@@ -1171,8 +1194,12 @@ class Enemy
                 vecMake(g.cameraPos[0],g.cameraPos[1],g.cameraPos[2],playerDir);
                 vecSub(g.cameraPos,pos,playerDir);
                 vecNormalize(playerDir);
-                vecScale(playerDir, speed * dt * g.curDiff, playerDir);
+                if(isRunner)
+                    vecScale(playerDir, speed * speedVariation * dt * g.curDiff * runMultiplier, playerDir);
+                else
+                    vecScale(playerDir, speed * speedVariation * dt * g.curDiff, playerDir);
                 vecAdd(pos,playerDir,pos);
+
                 numCorrect = 0;
                 for(int i = 0; i < (int)g.textbox.length();i++)
                 {
@@ -1180,6 +1207,8 @@ class Enemy
                         break;
                     numCorrect = i + 1;
                 }
+
+                
 
                 //enemy coor
                 float x = pos[0];
@@ -1213,6 +1242,10 @@ class Enemy
             }
             if(in_isActive == 1)
                 isActive = 1;
+        }
+        void setRunner()
+        {
+            isRunner = 1;
         }
         void setTextHeight(float y)
         {
@@ -1566,9 +1599,14 @@ void spawnEnemies()
     float spawnRange = 2.0f;
     float textRange = 0.125f * nEnemies;
     
+    //1 in runnerChance chance
+    int runnerChance = 3;
+    int rng = rand() % runnerChance;
+
     for(int i = 0; i < nEnemies;i++)
     {
-
+        
+        
 
         vecScale(g.cameraFront,5.0f + stagger,fowDis);
         stagger *= -1;
@@ -1579,6 +1617,14 @@ void spawnEnemies()
         delete debugEnemy[i];
         debugEnemy[i] = new Enemy(enemyPos,true);
         debugEnemy[i]->setTextHeight(((textRange/(float)nEnemies)*(float)i) -(textRange /2.0f) + 0.5f);
+        
+    }
+
+    if(rng == 0)
+    {
+            int chosenEnemy = rand() % nEnemies;
+            debugEnemy[chosenEnemy]->setRunner();
+            cout << chosenEnemy << " is runner" << endl;
     }
 
     
@@ -2004,6 +2050,22 @@ void updateAutoNavigation(float dt)
         vecScale(g.cameraFront, moveStep, cfuTemp);
         vecAdd(g.cameraPos, cfuTemp, g.cameraPos);
         distance += moveStep;
+        
+        if(g.wobbleUp)
+        {
+            cout << g.cameraWobble + g.cameraPos[1] << endl;
+            g.cameraWobble += 2.0f * dt;
+            if(g.cameraWobble + g.cameraPos[1] > g.cameraWobbleCeil)
+                g.wobbleUp = 0;
+        }else 
+        {
+            cout << g.cameraWobble + g.cameraPos[1] << endl;
+            g.cameraWobble -= 2.0f * dt;
+            if(g.cameraWobble + g.cameraPos[1] < g.cameraWobbleFloor)
+                g.wobbleUp = 1;
+        }
+               
+
 
         if (g.currentStep < 500 &&
                 distance <= 4.0f + err && distance >= 4.0f - err) {
@@ -2015,6 +2077,7 @@ void updateAutoNavigation(float dt)
             g.currentStep++;
             distance = 0.0f;
             fflush(stdout);
+            
         }
     }
 }
@@ -2065,8 +2128,11 @@ void render(void)
     //
     updateCameraFront();
     Vec added;
-    vecAdd(g.cameraPos,g.cameraFront,added);
-    gluLookAt((double)g.cameraPos[0],(double)g.cameraPos[1],(double)g.cameraPos[2],  (double)added[0],(double)added[1],(double)added[2],(double)g.cameraUp[0],(double)g.cameraUp[1],(double)g.cameraUp[2]);
+    Vec wCamera;
+    vecCopy(g.cameraPos,wCamera);
+    wCamera[1] += g.cameraWobble;
+    vecAdd(wCamera,g.cameraFront,added);
+    gluLookAt((double)wCamera[0],(double)wCamera[1],(double)wCamera[2],  (double)added[0],(double)added[1],(double)added[2],(double)g.cameraUp[0],(double)g.cameraUp[1],(double)g.cameraUp[2]);
     
     switch (g.lesson_num) {
         case 0:break;              
@@ -2108,16 +2174,47 @@ void render(void)
 bool isValidChar(char x)
 {
     string tempString = g.textbox;
+    string curString = g.textbox;
     tempString+=x;
     int tempStringSize = g.textbox.length();
     string tempEnemyString;
     
+
+    bool validString = false;
+    //check to see if current string should even exist (bug fix where sometimes an invalid string would be allowed)
+    //wipe text if this should not exist
+    
+    for(int i = 0; i < (int)curString.length();i++)
+    {
+        curString[i] = toupper(curString[i]);
+    }
+    cout << "-------------attempting " << curString << endl;
+     for(int i = 0; i < nEnemies;i++)
+    {
+        if(!debugEnemy[i]->getActive())
+            continue;
+        tempEnemyString = debugEnemy[i]->getWord();
+        tempEnemyString  = string_view(tempEnemyString).substr(0,tempStringSize);
+        cout << "against " << tempEnemyString << endl; 
+        if(curString == tempEnemyString)
+            validString = true;
+    }
+    if(!validString)
+    {
+        stack<char> emptyStack;
+        currentText = emptyStack;
+    }
+
+
+
+
+    //convert to uppercase then check against all enemy strings to see if one exists with new char appended
     string temp;
     for(int i = 0; i < (int)tempString.length();i++)
-        {
-            tempString[i] = toupper(tempString[i]);
-        }
-        cout << "attempting " << tempString << endl;
+    {
+        tempString[i] = toupper(tempString[i]);
+    }
+    cout << "attempting " << tempString << endl;
     for(int i = 0; i < nEnemies;i++)
     {
         if(!debugEnemy[i]->getActive())
@@ -2125,7 +2222,6 @@ bool isValidChar(char x)
         tempEnemyString = debugEnemy[i]->getWord();
         tempEnemyString  = string_view(tempEnemyString).substr(0,tempStringSize + 1);
         cout << "against " << tempEnemyString << endl; 
-        string upperString;
         if(tempString == tempEnemyString)
             return true;
     }
