@@ -249,7 +249,7 @@ class Global {
             targetCameraYaw = ' ';
             yaw = 0.0f;
             pitch = 0.0f;
-            typeMode = 0;
+            typeMode = 1;
             inBattle = 0;
             gameOver = 0;
             wobbleUp = 0;
@@ -282,7 +282,18 @@ class Global {
                 sound.loadWav("deathSound.wav", false, 1.0f, 1.0f));
             deathSounds.push_back(
                 sound.loadWav("deathSound2.wav", false, 1.0f, 1.0f));
+            deathSounds.push_back(
+                sound.loadWav("deathSound3.wav", false, 1.0f, 1.0f));
+            deathSounds.push_back(
+                sound.loadWav("deathSound4.wav", false, 1.0f, 1.0f));
+            deathSounds.push_back(
+                sound.loadWav("deathSound5.wav", false, 1.0f, 1.0f));
+                deathSounds.push_back(
+                sound.loadWav("deathSound6.wav", false, 1.0f, 1.0f));
+                deathSounds.push_back(
+                sound.loadWav("deathSound7.wav", false, 1.0f, 1.0f));
             
+
             GLfloat la[]  = {  0.0f, 0.0f, 0.0f, 1.0f };
             GLfloat ld[]  = {  1.0f, 1.0f, 1.0f, 1.0f };
             GLfloat ls[] = {  0.5f, 0.5f, 0.5f, 1.0f };
@@ -1619,7 +1630,7 @@ void initializeDebugEnemies()
 void restartGame()
 {
     g.pause = 0;
-    g.typeMode = 0;
+    //g.typeMode = 0;
     g.inBattle = 0;
     g.gameOver = 0;
     g.curScore = 0;
