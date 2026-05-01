@@ -1000,6 +1000,11 @@ int check_keys(XEvent *e)
                 g.lightPosition[0] = rnd() * 200.0 - 100.0;
                 g.lightPosition[1] = rnd() * 100.0 + 20.0;
                 g.lightPosition[2] = rnd() * 300.0 - 150.0;
+
+
+                cout << g.lightPosition[0] << " "  << g.lightPosition[1] << " " << g.lightPosition[2] << " "  << endl;
+
+
                 glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
                 break;
             case XK_Escape:
@@ -1165,8 +1170,14 @@ class Enemy
         Vec tpos;
         Vec pos;
         float speed;
+
+        //num of correct characters
         int numCorrect;
+
+        //random enemy Texture
         int textureIndex;
+
+        //variation and speed
         int isActive;
         int isRunner;
         float runMultiplier;
@@ -1185,10 +1196,6 @@ class Enemy
             isRunner = 0;
             runMultiplier = 3.0f;
             speedVariation =1.0f + (float)(rand() % 10) / 100.0f;
-            //speed = speed / speedVariation;
-            //speedVariation /= speedVariation; //num between -1 and 1
-            
-            
 
             word = g.myDictionary.getRandomWord();
             tpos[0] = rand() % (g.xres - 30);
@@ -1201,18 +1208,14 @@ class Enemy
             isActive = in_isActive;
             textureIndex = rand() % enemies.size();
           
-            //cout << speed  << " " << speedVariation<<  endl;
 
-          //pos[0] = 0;
-          //pos[1] = 0;
-          //pos[2] = 0;
             numCorrect = 0;
-           // cout << pos[0] << ", " << pos[1] << ", " << pos[2] << endl;
         }
         void update(float dt)
         {
             if(isActive)
             {
+                //get player direction and move towards 
                 Vec playerDir;
                 vecMake(g.cameraPos[0],g.cameraPos[1],g.cameraPos[2],playerDir);
                 vecSub(g.cameraPos,pos,playerDir);
@@ -1223,6 +1226,7 @@ class Enemy
                     vecScale(playerDir, speed * speedVariation * dt * g.curDiff, playerDir);
                 vecAdd(pos,playerDir,pos);
 
+                //calc number of correct characters for text disp
                 numCorrect = 0;
                 for(int i = 0; i < (int)g.textbox.length();i++)
                 {
@@ -1230,8 +1234,6 @@ class Enemy
                         break;
                     numCorrect = i + 1;
                 }
-
-                
 
                 //enemy coor
                 float x = pos[0];
@@ -1242,8 +1244,6 @@ class Enemy
 
                 //calculate distance between player and enemy
                 float dist = sqrt(((x2 - x) * (x2 - x)) + ((y2- y) * (y2- y)));
-                //cout << dist << endl;
-
                 if(dist <= 0.5)
                 {
                     g.gameOver = 1;
@@ -1300,22 +1300,13 @@ class Enemy
             {
             int wl = input.length();
             const string textureKey = " ! #$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[ ]^_ abcdefghijklmnopqrstuvwxyz{|}~ ........................";
-
-
-                
+           
                 float scale = 0.05f;
                 glPushMatrix();
 
-                
-                
-               
                 Vec playerDir;
-           
                 playerDir[0] =   g.cameraPos[0] - pos[0]; 
                 playerDir[2] =  g.cameraPos[2] - pos[2];
-
-                
-                //vecNormalize(playerDir);
                 float adj_angle = -(atan2(playerDir[2],playerDir[0]) * (180/PI));
                 int textRot = (((int)adj_angle + 360) % 360) + 90;
            
@@ -1328,7 +1319,6 @@ class Enemy
             
             for(int i = 0; i < wl;i++)
             {
-
                 int textureIndex = 1;
                 for(int j = 0; j < (int)textureKey.length();j++)
                 {
@@ -1338,60 +1328,54 @@ class Enemy
                     }
 
                 }
-                
+    
                 float ai = (2 * i) - wl;
 		
-		
+                int ty = floor(textureIndex / 15);
+                int tx = (textureIndex % 15);
+                float tx1 = tx * 1.0f/15.0f;
+                float tx2 = tx1 + 1.0f/15.0f;
+                float ty1 = ty * 1.0f/8.0f;
+                float ty2 = ty1 + 1.0f/8.0f;
 
-        int ty = floor(textureIndex / 15);
-		int tx = (textureIndex % 15);
+                //back side
+                float typeJumpAmt = 0.4f;
+                if(numCorrect > 0 && i <= numCorrect - 1)
+                {
+                    glNormal3f( 0.0f, 0.0f, -1.0f);
+                    glVertex3f(-1.0f + ai, 1.0f + typeJumpAmt, 0.0f);
+                    glVertex3f( 1.0f + ai, 1.0f + typeJumpAmt, 0.0f);
+                    glVertex3f( 1.0f + ai,-1.0f + typeJumpAmt, 0.0f);
+                    glVertex3f(-1.0f + ai,-1.0f + typeJumpAmt, 0.0f);
 
-
-
-		float tx1 = tx * 1.0f/15.0f;
-		float tx2 = tx1 + 1.0f/15.0f;
-		float ty1 = ty * 1.0f/8.0f;
-		float ty2 = ty1 + 1.0f/8.0f;
-
-		//back side
-        float typeJumpAmt = 0.4f;
-        if(numCorrect > 0 && i <= numCorrect - 1)
-        {
-		glNormal3f( 0.0f, 0.0f, -1.0f);
-		glVertex3f(-1.0f + ai, 1.0f + typeJumpAmt, 0.0f);
-		glVertex3f( 1.0f + ai, 1.0f + typeJumpAmt, 0.0f);
-		glVertex3f( 1.0f + ai,-1.0f + typeJumpAmt, 0.0f);
-		glVertex3f(-1.0f + ai,-1.0f + typeJumpAmt, 0.0f);
-
-        glColor3f(0.5f,0.5f,0.5f);
-        glTexCoord2f(tx1, ty2); glVertex3f(-1.0f + ai, -1.0f + typeJumpAmt, 0.01f);
-		glTexCoord2f(tx1, ty1); glVertex3f( -1.0f + ai, 1.0f + typeJumpAmt, 0.01f);
-		glTexCoord2f(tx2, ty1); glVertex3f( 1.0f + ai,1.0f + typeJumpAmt, 0.01f);
-		glTexCoord2f(tx2, ty2); glVertex3f(1.0f + ai,-1.0f + typeJumpAmt, 0.01f);
-        
-        }
-        else
-        {
-		glNormal3f( 0.0f, 0.0f, -1.0f);
-		glVertex3f(-1.0f + ai, 1.0f , 0.0f);
-		glVertex3f( 1.0f + ai, 1.0f, 0.0f);
-		glVertex3f( 1.0f + ai,-1.0f, 0.0f);
-		glVertex3f(-1.0f + ai,-1.0f, 0.0f);
-        
-        glColor3f(1.0f,1.0f,1.0f);
-        glTexCoord2f(tx1, ty2); glVertex3f(-1.0f + ai, -1.0f , 0.01f);
-		glTexCoord2f(tx1, ty1); glVertex3f( -1.0f + ai, 1.0f , 0.01f);
-		glTexCoord2f(tx2, ty1); glVertex3f( 1.0f + ai,1.0f , 0.01f);
-		glTexCoord2f(tx2, ty2); glVertex3f(1.0f + ai,-1.0f , 0.01f);
-        
-        }
-        
-        //front
-		glNormal3f( 0.0f, 0.0f, 1.0f);
-	    }
-	    glEnd();
-	    glPopMatrix();
-	    glBindTexture(GL_TEXTURE_2D, 0);
+                    glColor3f(0.5f,0.5f,0.5f);
+                    glTexCoord2f(tx1, ty2); glVertex3f(-1.0f + ai, -1.0f + typeJumpAmt, 0.01f);
+                    glTexCoord2f(tx1, ty1); glVertex3f( -1.0f + ai, 1.0f + typeJumpAmt, 0.01f);
+                    glTexCoord2f(tx2, ty1); glVertex3f( 1.0f + ai,1.0f + typeJumpAmt, 0.01f);
+                    glTexCoord2f(tx2, ty2); glVertex3f(1.0f + ai,-1.0f + typeJumpAmt, 0.01f);
+                }
+                else
+                {
+                glNormal3f( 0.0f, 0.0f, -1.0f);
+                glVertex3f(-1.0f + ai, 1.0f , 0.0f);
+                glVertex3f( 1.0f + ai, 1.0f, 0.0f);
+                glVertex3f( 1.0f + ai,-1.0f, 0.0f);
+                glVertex3f(-1.0f + ai,-1.0f, 0.0f);
+                
+                glColor3f(1.0f,1.0f,1.0f);
+                glTexCoord2f(tx1, ty2); glVertex3f(-1.0f + ai, -1.0f , 0.01f);
+                glTexCoord2f(tx1, ty1); glVertex3f( -1.0f + ai, 1.0f , 0.01f);
+                glTexCoord2f(tx2, ty1); glVertex3f( 1.0f + ai,1.0f , 0.01f);
+                glTexCoord2f(tx2, ty2); glVertex3f(1.0f + ai,-1.0f , 0.01f);
+                
+                }
+                
+                //front
+                glNormal3f( 0.0f, 0.0f, 1.0f);
+                }
+                glEnd();
+                glPopMatrix();
+                glBindTexture(GL_TEXTURE_2D, 0);
     }
 	}
 	void drawEnemy()
@@ -1403,13 +1387,17 @@ class Enemy
             glPushMatrix();
                 glEnable(GL_ALPHA_TEST);
                 glAlphaFunc(GL_GREATER,0.0f);
-                
-            
-                
+
+
                 Vec playerDir;
+                //compute x direction
                 playerDir[0] =   g.cameraPos[0] - pos[0]; 
+                //compute y direction
                 playerDir[2] =  g.cameraPos[2] - pos[2];
+
+                //convert direction Vector to angle
                 float adj_angle = -(atan2(playerDir[2],playerDir[0]) * (180/PI));
+                //apply offset
                 int enemyRot = (((int)adj_angle + 360) % 360) + 90;
 
                 glColor4ub(255,255,255,255);
@@ -1417,8 +1405,8 @@ class Enemy
                 glRotatef((enemyRot),0.0f,1.0f,0.0f);
                 glScalef(scale,scale,scale);
                 glColor3f(1.0f,1.0f,1.0f);
+                //apply texture
                 glBindTexture(GL_TEXTURE_2D, g.enemyTex[textureIndex].backTexture);
-                
                 glBegin(GL_QUADS);
                     glNormal3f( 0.0f, 0.0f, 1.0f);
                     glColor3f(1.0f,1.0f,1.0f);
@@ -1447,10 +1435,6 @@ class Enemy
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 		glDisable(GL_LIGHTING);
-		// r.bot = tpos[1];
-		// r.left = tpos[0];
-		// r.center = 0;
-		// ggprint8b(&r, 16, 0x00990000, "%s",word.c_str());
 		glPopMatrix();
 
 
@@ -1699,6 +1683,12 @@ void spawnEnemies()
 }
 void TypeDebug()
 {
+
+    g.lightPosition[0] = g.cameraPos[0];
+    g.lightPosition[1] = g.cameraPos[1];
+    g.lightPosition[2] = g.cameraPos[2];
+
+
     int curEnemies = 0;
     if (!debugEnemy[0]) {
         initializeDebugEnemies();
@@ -1786,11 +1776,12 @@ void TypeDebug()
     glAlphaFunc(GL_GREATER,0.0f);
     glColor4ub(255,255,255,255);
     glBindTexture(GL_TEXTURE_2D, g.weaponTex.backTexture);
+    
 	glBegin(GL_QUADS);
 	glNormal3f( 0.0f, 0.0f, 1.0f);
 	
-    float w = g.xres /2;
-    float h = g.yres /2;
+    float w = g.xres /2.5;
+    float h = g.yres /2.5;
 
 	glTexCoord2f(0.0f, 0.0f);glVertex2f(0, h);
 	glTexCoord2f(1.0f, 0.0f);glVertex2f( w, h);

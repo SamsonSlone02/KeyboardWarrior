@@ -6,7 +6,7 @@ using namespace std;
 class Dictionary
 {
     private:
-        const int totalWords = 45333;
+        const int totalWords = 27556;
         string fileName;
         string * wordList;
 
