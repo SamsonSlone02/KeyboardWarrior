@@ -6,22 +6,29 @@
 //OpenGL
 //lab-6 starting framework
 #include <cctype>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include <unistd.h>
 #include <math.h>
 #include <time.h>
+
 #include <fstream>
 #include <iostream>
 #include <algorithm>
 #include <string>
+
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
+
 #include <GL/gl.h>
 #include <GL/glx.h>
 #include <GL/glu.h>
+
 #include "fonts.h"
+
 #include <stack>
 #include <vector>
 #include <filesystem>
@@ -138,7 +145,7 @@ public:
                         unlink(newfile);
         }
 
-}; Image img[7] = {"wall.png","carpet.png","sky4.jpg","ascii.png","./enemies/selfie_cat.png","ceiling.png","weapon.png"};
+}; Image img[8] = {"wall.png","carpet.png","sky4.jpg","ascii.png","./enemies/selfie_cat.png","ceiling.png","weapon.png", "walmart.jpg"};
 //Image enemies[] = {"enemy.png", "enemy2.png"};
 //const int enemyTextureCount = sizeof(enemies) / sizeof(enemies[0]);
 
@@ -192,6 +199,7 @@ class Global {
         Texture *enemyTex = new Texture[enemies.size()];
         Texture weaponTex;
         Texture ceilingTex;
+        Texture title;
         int cx;
         int cy;
         int cz;
@@ -243,7 +251,10 @@ class Global {
         int pauseMusic;
         std::vector<int> deathSounds;
 
+        int gamestate;
+
         Global() {
+            gamestate = 0;
             currentStep = 0;
             cameraTurnSpeed = 150.0f;
             targetCameraYaw = ' ';
@@ -265,7 +276,6 @@ class Global {
             pause = 0;
             xres = 640;
             yres = 480;
-
             
 
             mazeHeight = 30;
@@ -395,6 +405,18 @@ class Global {
         }
 } g;
 
+class Title {
+public:
+    float lettertimer;
+    int activeletter;
+    float pulsetime;
+    Title() {
+        lettertimer = 0.0f;
+        activeletter = 0.0f;
+        pulsetime = 0.0f;
+    }
+} t;
+
 void playRandomDeathSound()
 {
     if (g.deathSounds.empty()) {
@@ -445,7 +467,7 @@ class X11_wrapper {
         void set_title(void) {
             //Set the window title bar.
             XMapWindow(dpy, win);
-            XStoreName(dpy, win, "3480 lab-6");
+            XStoreName(dpy, win, "Keyboard Warrior");
         }
         void setup_screen_res(const int w, const int h) {
             g.xres = w;
@@ -630,6 +652,120 @@ int main(void)
     return 0;
 }
 
+void drawChar(char c, float x, float y, float scale)
+{
+    // Simple segment definitions for A-Z and space
+    // Each entry is a list of line segments: x1,y1,x2,y2 in a 0-4, 0-6 grid
+    glLineWidth(2.0f);
+    glPushMatrix();
+    glTranslatef(x, y, 0);
+    glScalef(scale, scale, 1.0f);
+    glBegin(GL_LINES);
+    switch(toupper(c)) {
+        case 'K':
+            glVertex2f(0,0); glVertex2f(0,6);
+            glVertex2f(0,3); glVertex2f(4,6);
+            glVertex2f(0,3); glVertex2f(4,0);
+            break;
+        case 'E':
+            glVertex2f(0,0); glVertex2f(0,6);
+            glVertex2f(0,6); glVertex2f(4,6);
+            glVertex2f(0,3); glVertex2f(3,3);
+            glVertex2f(0,0); glVertex2f(4,0);
+            break;
+        case 'Y':
+            glVertex2f(0,6); glVertex2f(2,3);
+            glVertex2f(4,6); glVertex2f(2,3);
+            glVertex2f(2,3); glVertex2f(2,0);
+            break;
+        case 'B':
+            glVertex2f(0,0); glVertex2f(0,6);
+            glVertex2f(0,6); glVertex2f(3,6);
+            glVertex2f(3,6); glVertex2f(4,5);
+            glVertex2f(4,5); glVertex2f(3,3);
+            glVertex2f(3,3); glVertex2f(0,3);
+            glVertex2f(3,3); glVertex2f(4,2);
+            glVertex2f(4,2); glVertex2f(3,0);
+            glVertex2f(3,0); glVertex2f(0,0);
+            break;
+        case 'O':
+            glVertex2f(0,0); glVertex2f(0,6);
+            glVertex2f(0,6); glVertex2f(4,6);
+            glVertex2f(4,6); glVertex2f(4,0);
+            glVertex2f(4,0); glVertex2f(0,0);
+            break;
+        case 'A':
+            glVertex2f(0,0); glVertex2f(0,6);
+            glVertex2f(0,6); glVertex2f(4,6);
+            glVertex2f(4,6); glVertex2f(4,0);
+            glVertex2f(0,3); glVertex2f(4,3);
+            break;
+        case 'R':
+            glVertex2f(0,0); glVertex2f(0,6);
+            glVertex2f(0,6); glVertex2f(3,6);
+            glVertex2f(3,6); glVertex2f(4,5);
+            glVertex2f(4,5); glVertex2f(3,3);
+            glVertex2f(3,3); glVertex2f(0,3);
+            glVertex2f(2,3); glVertex2f(4,0);
+            break;
+        case 'D':
+            glVertex2f(0,0); glVertex2f(0,6);
+            glVertex2f(0,6); glVertex2f(3,6);
+            glVertex2f(3,6); glVertex2f(4,5);
+            glVertex2f(4,5); glVertex2f(4,1);
+            glVertex2f(4,1); glVertex2f(3,0);
+            glVertex2f(3,0); glVertex2f(0,0);
+            break;
+        case 'W':
+            glVertex2f(0,6); glVertex2f(1,0);
+            glVertex2f(1,0); glVertex2f(2,3);
+            glVertex2f(2,3); glVertex2f(3,0);
+            glVertex2f(3,0); glVertex2f(4,6);
+            break;
+        case 'I':
+            glVertex2f(1,0); glVertex2f(3,0);
+            glVertex2f(2,0); glVertex2f(2,6);
+            glVertex2f(1,6); glVertex2f(3,6);
+            break;
+        case 'S':
+            glVertex2f(4,6); glVertex2f(0,6);
+            glVertex2f(0,6); glVertex2f(0,3);
+            glVertex2f(0,3); glVertex2f(4,3);
+            glVertex2f(4,3); glVertex2f(4,0);
+            glVertex2f(4,0); glVertex2f(0,0);
+            break;
+        case 'T':
+            glVertex2f(0,6); glVertex2f(4,6);
+            glVertex2f(2,6); glVertex2f(2,0);
+            break;
+        case 'N':
+            glVertex2f(0,0); glVertex2f(0,6);
+            glVertex2f(0,6); glVertex2f(4,0);
+            glVertex2f(4,0); glVertex2f(4,6);
+            break;
+        case ' ':
+            break;
+        default:
+            // fallback: draw a small box for unknown chars
+            glVertex2f(0,0); glVertex2f(4,0);
+            glVertex2f(4,0); glVertex2f(4,6);
+            glVertex2f(4,6); glVertex2f(0,6);
+            glVertex2f(0,6); glVertex2f(0,0);
+            break;
+    }
+    glEnd();
+    glPopMatrix();
+}
+
+void drawString(const char *str, float x, float y, float scale, float r, float g, float b)
+{
+    glColor3f(r, g, b);
+    float cx = x;
+    for (int i = 0; str[i] != '\0'; i++) {
+        drawChar(str[i], cx, y, scale);
+        cx += 6.0f * scale;  // advance per character
+    }
+}
 
 void vecScale(Vec v0,float s0, Vec dest)
 {
@@ -896,8 +1032,27 @@ for (size_t num = 0; num < enemies.size(); num++) {
     // g.weaponTex.yc[0] = 0.0;
     // g.weaponTex.yc[1] = 1.0;
 
+    glEnable(GL_TEXTURE_2D);
+    //
+    //load the images file into a ppm structure.
+    //
 
-
+    g.title.backImage = &img[7];
+    //create opengl texture elements
+    glGenTextures(1, &g.title.backTexture);
+    w = g.title.backImage->width;
+    h = g.title.backImage->height;
+    glBindTexture(GL_TEXTURE_2D, g.title.backTexture);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
+    glTexImage2D(GL_TEXTURE_2D, 0, 3, w, h, 0,
+            GL_RGB, GL_UNSIGNED_BYTE, g.title.backImage->data);
+    g.title.xc[0] = 0.0;
+    g.title.xc[1] = 0.25;
+    g.title.yc[0] = 0.0;
+    g.title.yc[1] = 1.0;
 }
 
 void check_mouse(XEvent *e)
@@ -931,6 +1086,15 @@ int check_keys(XEvent *e)
     if (e->type != KeyPress && e->type != KeyRelease)
         return 0;
     int key = XLookupKeysym(&e->xkey, 0);
+    
+    // TITLE CODE //
+    if (g.gamestate == 0) {
+        if (key == XK_space) {
+            g.gamestate = 1;
+        }
+        return 0;
+    }
+    // TITLE CODE //
 
     if (e->type == KeyPress) {
        g.keys[key] = true;
@@ -1852,6 +2016,62 @@ void DrawGame()
        */
 }
 
+void DrawTitle() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    float pulse = 0.8f + 0.1f * sinf(t.pulsetime);
+    float cx = 0.5f;
+    float cy = 0.5f;
+    float halfW = 0.5f * pulse;
+    float halfH = 0.5f * pulse;
+
+    glEnable(GL_TEXTURE_2D);
+    glColor3f(1.0, 1.0, 1.0);
+    glBindTexture(GL_TEXTURE_2D, g.title.backTexture);
+    glBegin(GL_QUADS);
+    glTexCoord2f(cx - halfW, cy + halfH); glVertex2i(0,       0);
+    glTexCoord2f(cx - halfW, cy - halfH); glVertex2i(0,       g.yres);
+    glTexCoord2f(cx + halfW, cy - halfH); glVertex2i(g.xres,  g.yres);
+    glTexCoord2f(cx + halfW, cy + halfH); glVertex2i(g.xres,  0);
+    glEnd();
+    glDisable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    const char *title = "Keyboard Warrior";
+    int titlelen = (int)strlen(title);
+
+    float colors[][3] = {
+        {1.0f, 0.27f, 0.27f},  // red
+        {1.0f, 0.6f,  0.0f },  // orange
+        {1.0f, 1.0f,  0.0f },  // yellow
+        {0.27f,1.0f,  0.27f},  // green
+        {0.27f,0.8f,  1.0f },  // cyan
+        {0.6f, 0.27f, 1.0f },  // purple
+        {1.0f, 0.27f, 0.8f }   // pink
+    };
+    int numColors = 7;
+
+    float scale   = 6.0f;   // character size -- increase to make bigger
+    float charW   = 6.0f * scale;
+    int startx = (g.xres - titlelen * charW) / 2;
+    int starty = g.yres - 120;
+
+    for (int i = 0; i < titlelen; i++) {
+        float r, gr, b;
+        if (i == t.activeletter) {
+            r  = colors[i % numColors][0];
+            gr = colors[i % numColors][1];
+            b  = colors[i % numColors][2];
+        } else {
+            r = gr = b = 1.0f;  // white
+        }
+        char letter[2] = { title[i], '\0' };
+        drawString(letter, startx + i * charW, starty, scale, r, gr, b);
+    }
+
+    // Re-enable texture for next frame
+    glEnable(GL_TEXTURE_2D);
+}
 
 void DrawGLSkybox()
 {
@@ -2138,8 +2358,22 @@ void updateLesson2(float dt)
 
 void physics(void)
 {
+    if (g.gamestate == 0) {
+        t.pulsetime = t.pulsetime + 0.02f;
+
+        const char *title = "Keyboard Warrior";
+        int titlelen = (int)strlen(title);
+        t.lettertimer = t.lettertimer + 0.35f;
+        if (t.lettertimer >= 1.0f) {
+            t.lettertimer = 0.0f;
+            t.activeletter = (t.activeletter + 1) % titlelen;
+        }
+        return;
+    }
+
     const float dt = (float)physicsRate;
 //    cout << g.lesson_num << endl;
+
     switch (g.lesson_num) {
         case 1:
             updateLesson1(dt);
@@ -2155,12 +2389,25 @@ void physics(void)
 
 void render(void)
 {
+    if (g.gamestate == 0) {
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        glOrtho(0, g.xres, 0, g.yres, -1, 1);
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        glDisable(GL_LIGHTING);
+        glDisable(GL_DEPTH_TEST);
+        DrawTitle();
+        return;
+    }
 
-
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_LIGHTING);
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_COLOR_MATERIAL);
 
     glClear(GL_COLOR_BUFFER_BIT);
-
-
+    glClear(GL_DEPTH_BUFFER_BIT);
 
     //
     glMatrixMode(GL_PROJECTION);
@@ -2172,8 +2419,6 @@ void render(void)
     glEnable(GL_COLOR_MATERIAL);
     glEnable(GL_LIGHTING);
 
-
-
     //
     updateCameraFront();
     Vec added;
@@ -2184,12 +2429,14 @@ void render(void)
     gluLookAt((double)wCamera[0],(double)wCamera[1],(double)wCamera[2],  (double)added[0],(double)added[1],(double)added[2],(double)g.cameraUp[0],(double)g.cameraUp[1],(double)g.cameraUp[2]);
     
     switch (g.lesson_num) {
-        case 0:break;              
+        case 0:
+            break;              
         case 1:
             TypeDebug();
             break;
-        case 2: DrawGame(); break;
-
+        case 2: 
+            DrawGame(); 
+            break;
     }
     //Set 2D mode (no perspective)
     glMatrixMode(GL_PROJECTION);
@@ -2203,7 +2450,7 @@ void render(void)
     r.bot = g.yres - 20;
     r.left = 10;
     r.center = 0;
-    ggprint8b(&r, 16, 0x00887766, "3480");
+    ggprint8b(&r, 16, 0x00887766, "Keyboard Warrior");
     //ggprint8b(&r, 16, 0x008877aa, "L - change light position");
     ggprint8b(&r, 16, 0x008877aa, "1 - type debug");
     ggprint8b(&r, 16, 0x008877aa, "2 -  game");
